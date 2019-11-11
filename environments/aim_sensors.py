@@ -1,4 +1,5 @@
 import gym, requests
+import numpy as np
 
 from gym import spaces
 from time import sleep
@@ -21,12 +22,14 @@ class AimSensors(gym.Env):
                 frame_size = len(f_state[0][0])
                 action_size = len(actions)
                 ready = True
-            except:
+            except Exception as e:
+                print(e)
                 print('Connecting to {0}...'.format(env_ip))
                 sleep(1)
 
-        self.action_space = spaces.Discrete()
-        self.observation_space = spaces.Box()
+        self.observation_space = spaces.Box(low=0, high=np.inf, shape=(1, frame_size), dtype=np.float32)
+        self.action_space = spaces.Discrete(action_size)
+        self.
 
     def step(self, action):
         pass
@@ -37,9 +40,9 @@ class AimSensors(gym.Env):
     def render(self, mode='human', close=False):
         pass
 
-    def get_state(env_ip):
+    def get_state(self, env_ip):
         flows, f_state, p_state = requests.get('http://{0}/state'.format(env_ip)).json()
         return flows, f_state, p_state
 
-    def get_actions(env_ip):
+    def get_actions(self, env_ip):
         return requests.get('http://{0}/actions'.format(env_ip)).json()
