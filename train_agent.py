@@ -34,7 +34,7 @@ if __name__ == '__main__':
 
     episode_duration = 20
     t_start = 5
-    delay = 0.25
+    delay = 0.0
     n_episodes = 1000
     save_interval = 10
     cfg_file = 'config.json'

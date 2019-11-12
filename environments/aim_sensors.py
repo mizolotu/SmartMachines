@@ -39,7 +39,6 @@ class AimSensors(gym.Env):
 
     def step(self, action_list):
         t_state = time()
-        # print('Actions in {0}: {1}'.format(self.env_ip, action_list))
         self._take_action(action_list)
         t_action = time()
         if t_action < t_state + self.delay:

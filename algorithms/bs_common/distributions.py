@@ -195,7 +195,7 @@ class CategoricalPd(Pd):
         ea0 = tf.exp(a0)
         z0 = tf.reduce_sum(ea0, axis=-1, keepdims=True)
         p0 = ea0 / z0
-        return tf.reduce_sum(p0 * (tf.log(z0) - a0), axis=-1)
+        return tf.reduce_sum(p0 * (tf.math.log(z0) - a0), axis=-1)
     def sample(self):
         u = tf.random.uniform(tf.shape(self.logits), dtype=self.logits.dtype)
         return tf.argmax(self.logits - tf.math.log(-tf.math.log(u)), axis=-1)
