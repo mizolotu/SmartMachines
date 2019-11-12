@@ -35,14 +35,14 @@ if __name__ == '__main__':
     episode_duration = 20
     t_start = 5
     delay = 0.0
+    n_steps = 100
     n_episodes = 1000
+    n_total_steps = n_episodes * n_steps
     save_interval = 10
     cfg_file = 'config.json'
     with open(cfg_file, 'r') as f:
         cfg = json.load(f)
 
-    n_steps = int(episode_duration / delay)
-    n_total_steps = int(n_episodes * episode_duration / delay)
     alg_kwargs = {
         'network': 'mlp',
         'nsteps': n_steps,
