@@ -47,7 +47,8 @@ if __name__ == '__main__':
         'network': 'mlp',
         'nsteps': n_steps,
         'total_timesteps': n_total_steps,
-        'save_interval': save_interval
+        'save_interval': save_interval,
+        'value_network': 'shared',
     }
 
     env_fns = [create_env(env_url, attack_vectors, delay, cfg) for env_url in env_urls]

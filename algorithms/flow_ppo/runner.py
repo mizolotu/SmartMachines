@@ -61,7 +61,6 @@ class Runner(AbstractEnvRunner):
         returns_b = []
         values_b = []
         neglopacs_b = []
-        scores_b = []
 
         for e in range(self.nenv):
             flows = [each[e] for each in mb_flows]
@@ -126,7 +125,6 @@ class Runner(AbstractEnvRunner):
         mb_masks = np.zeros_like(mb_returns)
         mb_values = np.vstack(values_b)
         mb_neglogpacs = np.vstack(neglopacs_b)
-
 
         #mb_dones = np.asarray(mb_dones, dtype=np.bool)
         #last_values = [[] for _ in range(self.nenv)]

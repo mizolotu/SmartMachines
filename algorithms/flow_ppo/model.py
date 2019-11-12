@@ -76,6 +76,7 @@ class Model(object):
 
         # Calculate ratio (pi current policy / pi old policy)
         ratio = tf.exp(OLDNEGLOGPAC - neglogpac)
+        neglogpac_diff = tf.reduce_mean(OLDNEGLOGPAC - neglogpac)
 
         # Defining Loss = - J is equivalent to max J
         pg_losses = -ADV * ratio
@@ -112,8 +113,8 @@ class Model(object):
         self.grads = grads
         self.var = var
         self._train_op = self.trainer.apply_gradients(grads_and_var)
-        self.loss_names = ['policy_loss', 'value_loss', 'policy_entropy', 'approxkl', 'clipfrac']
-        self.stats_list = [pg_loss, vf_loss, entropy, approxkl, clipfrac]
+        self.loss_names = ['policy_loss', 'value_loss', 'policy_entropy', 'approxkl', 'clipfrac', 'diff']
+        self.stats_list = [pg_loss, vf_loss, entropy, approxkl, clipfrac, neglogpac_diff]
 
 
         self.train_model = train_model
