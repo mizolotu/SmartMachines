@@ -50,7 +50,7 @@ def huber_loss(x, delta=1.0):
 
 def get_session(config=None):
     """Get default session or create one with a given config"""
-    sess = tf.get_default_session()
+    sess = tf.compat.v1.get_default_session()
     if sess is None:
         sess = make_session(config=config, make_default=True)
     return sess
@@ -60,14 +60,14 @@ def make_session(config=None, num_cpu=None, make_default=False, graph=None):
     if num_cpu is None:
         num_cpu = int(os.getenv('RCALL_NUM_CPU', multiprocessing.cpu_count()))
     if config is None:
-        config = tf.ConfigProto(
+        config = tf.compat.v1.ConfigProto(
             allow_soft_placement=True,
             inter_op_parallelism_threads=num_cpu,
             intra_op_parallelism_threads=num_cpu)
         config.gpu_options.allow_growth = True
 
     if make_default:
-        return tf.InteractiveSession(config=config, graph=graph)
+        return tf.compat.v1.InteractiveSession(config=config, graph=graph)
     else:
         return tf.Session(config=config, graph=graph)
 
@@ -86,8 +86,8 @@ ALREADY_INITIALIZED = set()
 
 def initialize():
     """Initialize all the uninitialized variables in the global scope."""
-    new_variables = set(tf.global_variables()) - ALREADY_INITIALIZED
-    get_session().run(tf.variables_initializer(new_variables))
+    new_variables = set(tf.compat.v1.global_variables()) - ALREADY_INITIALIZED
+    get_session().run(tf.compat.v1.variables_initializer(new_variables))
     ALREADY_INITIALIZED.update(new_variables)
 
 # ================================================================
@@ -432,10 +432,10 @@ def launch_tensorboard_in_background(log_dir):
         def start_tensorboard(session):
             time.sleep(10) # Wait until graph is setup
             tb_path = osp.join(logger.get_dir(), 'tb')
-            summary_writer = tf.summary.FileWriter(tb_path, graph=session.graph)
-            summary_op = tf.summary.merge_all()
+            summary_writer = tf.compat.v1.summary.FileWriter(tb_path, graph=session.graph)
+            summary_op = tf.compat.v1.summary.merge_all()
             launch_tensorboard_in_background(tb_path)
-        session = tf.get_default_session()
+        session = tf.compat.v1.get_default_session()
         t = threading.Thread(target=start_tensorboard, args=([session]))
         t.start()
     '''

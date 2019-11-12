@@ -138,7 +138,7 @@ def build_policy(env, policy_network, value_network=None,  normalize_observation
 
         encoded_x = encode_observation(ob_space, encoded_x)
 
-        with tf.variable_scope('pi', reuse=tf.AUTO_REUSE):
+        with tf.compat.v1.variable_scope('pi', reuse=tf.compat.v1.AUTO_REUSE):
             policy_latent = policy_network(encoded_x)
             if isinstance(policy_latent, tuple):
                 policy_latent, recurrent_tensors = policy_latent
