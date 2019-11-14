@@ -1,4 +1,4 @@
-import json
+import sys, json
 
 from environments.aim_sensors import AimSensors
 from algorithms.bs_common.vec_env import DummyVecEnv
@@ -9,25 +9,40 @@ def create_env(env, attack_vectors, delay, cfg):
 
 if __name__ == '__main__':
 
+    # parse arguments
+
+    if len(sys.argv) == 1:
+        env_inds = [1, 2]
+        av_inds = [1]
+    elif len(sys.argv) == 2:
+        env_inds = [int(idx) for idx in sys.argv[1].split(',')]
+        av_inds = [1]
+    elif len(sys.argv) == 3:
+        env_inds = [int(idx) for idx in sys.argv[1].split(',')]
+        av_inds = [int(idx) for idx in sys.argv[2].split(',')]
+    else:
+        print('What?')
+        sys.exit(1)
+
     # environment backend ips
 
     env_urls = [
-        # '192.168.176.10:5000',
+        '192.168.176.10:5000',
         '192.168.176.11:5000',
         '192.168.176.12:5000',
-        # '192.168.176.13:5000',
-        # '192.168.176.14:5000',
-        # '192.168.176.15:5000'
+        '192.168.176.13:5000',
+        '192.168.176.14:5000',
+        '192.168.176.15:5000'
     ]
 
     # attack vectors
 
     attack_vectors = [
         'botnet_attack',
-        # 'exfiltration_attack',
-        # 'scan_attack',
-        # 'exploit_attack',
-        # 'slowloris_attack'
+        'exfiltration_attack',
+        'scan_attack',
+        'exploit_attack',
+        'slowloris_attack'
     ]
 
     # experiment parameters
@@ -51,7 +66,9 @@ if __name__ == '__main__':
         'value_network': 'shared',
     }
 
-    env_fns = [create_env(env_url, attack_vectors, delay, cfg) for env_url in env_urls]
+    envs = [env_urls[idx] for idx in env_inds]
+    avs = [attack_vectors[idx] for idx in av_inds]
+    env_fns = [create_env(env, avs, delay, cfg) for env in envs]
     env = DummyVecEnv(env_fns)
     learn(env=env, **alg_kwargs)
 

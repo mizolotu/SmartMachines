@@ -38,13 +38,15 @@ class AimSensors(gym.Env):
         self.action_space = spaces.Discrete(action_size)
 
     def step(self, action_list):
-        t_state = time()
+        t_start = time()
         self._take_action(action_list)
         t_action = time()
-        if t_action < t_state + self.delay:
-            sleep(t_state + self.delay - t_action)
+        if t_action < t_start + self.delay:
+            sleep(t_start + self.delay - t_action)
         f_scores, f_counts = self._get_score()
         self.flows, f_state, p_state = self._get_state()
+        t_state = time()
+        print('Step in {0} took {1} seconds'.format(self.env_ip, t_state - t_start))
         return f_state, f_scores, False, self.flows
 
     def reset(self):
@@ -91,6 +93,6 @@ class AimSensors(gym.Env):
             try:
                 data = requests.get('http://{0}/score'.format(self.env_ip), json={'flows': self.flows}).json()
                 ready = True
-            except:
-                pass
+            except Exception as e:
+                print(e)
         return data
