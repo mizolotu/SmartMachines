@@ -108,8 +108,9 @@ def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2
                     nsteps=nsteps, ent_coef=ent_coef, vf_coef=vf_coef,
                     max_grad_norm=max_grad_norm, comm=comm, mpi_rank_weight=mpi_rank_weight)
 
-    if load_path is not None:
+    if load_path is not None and osp.isfile(load_path):
         model.load(load_path)
+        print('Loaded {0}'.format(load_path))
     # Instantiate the runner object
     runner = Runner(env=env, model=model, nsteps=nsteps, gamma=gamma, lam=lam)
     if eval_env is not None:
@@ -219,8 +220,10 @@ def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2
             checkdir = osp.join(logger.get_dir(), 'checkpoints')
             os.makedirs(checkdir, exist_ok=True)
             savepath = osp.join(checkdir, '%.5i'%update)
-            print('Saving to', savepath)
+            savepath_last = osp.join(checkdir, 'last')
+            print('Saving to {0} and {1}'.format(savepath, savepath_last))
             model.save(savepath)
+            model.save(savepath_last)
 
     return model
 # Avoid division error when calculate the mean (in our case if epinfo is empty returns np.nan, not return an error)

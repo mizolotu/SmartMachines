@@ -47,6 +47,7 @@ if __name__ == '__main__':
 
     # experiment parameters
 
+    policy = 'mlp'
     episode_duration = 20
     t_start = 5
     delay = 0.0
@@ -59,11 +60,12 @@ if __name__ == '__main__':
         cfg = json.load(f)
 
     alg_kwargs = {
-        'network': 'mlp',
+        'network': policy,
         'nsteps': n_steps,
         'total_timesteps': n_total_steps,
         'save_interval': save_interval,
         'value_network': 'shared',
+        'load_path': 'logs/{0}/checkpoints/last'.format(policy)
     }
 
     envs = [env_urls[idx] for idx in env_inds]
