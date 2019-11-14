@@ -127,9 +127,9 @@ def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2
     tfirststart = time.perf_counter()
 
     format_strs = os.getenv('MARA_LOG_FORMAT', 'stdout,log,csv,tensorboard').split(',')
-    logger.configure(os.path.abspath('logs/{0}'.format(network)), format_strs)
+    logger.configure(os.path.abspath('logs/ppo/{0}'.format(network)), format_strs)
 
-    nupdates = total_timesteps//nbatch
+    nupdates = total_timesteps # //nbatch
     for update in range(1, nupdates+1):
         #assert nbatch % nminibatches == 0
         # Start timer
@@ -201,9 +201,9 @@ def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2
             # Calculates if value function is a good predicator of the returns (ev > 1)
             # or if it's just worse than predicting nothing (ev =< 0)
             ev = explained_variance(values, returns)
-            logger.logkv("misc/serial_timesteps", update*nsteps)
+            logger.logkv("misc/serial_timesteps", update * nsteps)
             logger.logkv("misc/nupdates", update)
-            logger.logkv("misc/total_timesteps", update*nbatch)
+            logger.logkv("misc/total_timesteps", update * nsteps * nenvs)
             logger.logkv("fps", fps)
             logger.logkv("misc/explained_variance", float(ev))
             logger.logkv('eprewmean', safemean([epinfo['r'] for epinfo in epinfobuf]))
@@ -224,8 +224,8 @@ def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2
             print('Saving to {0} and {1}'.format(savepath, savepath_last))
             model.save(savepath)
             model.save(savepath_last)
-
     return model
+
 # Avoid division error when calculate the mean (in our case if epinfo is empty returns np.nan, not return an error)
 def safemean(xs):
     return np.nan if len(xs) == 0 else np.mean(xs)
