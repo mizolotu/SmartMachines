@@ -2,6 +2,7 @@ import sys, json
 
 from environments.aim_sensors import AimSensors
 from algorithms.bs_common.vec_env import DummyVecEnv
+from algorithms.bs_common.vec_env import SubprocVecEnv
 from algorithms.flow_ppo.ppo import learn
 
 def create_env(env, attack_vectors, delay, cfg):
@@ -49,7 +50,7 @@ if __name__ == '__main__':
 
     policy = 'mlp'
     delay = 0.0
-    n_steps = 25
+    n_steps = 30
     n_episodes = 100000
     n_total_steps = n_episodes * n_steps
     save_interval = 10
@@ -69,6 +70,7 @@ if __name__ == '__main__':
     envs = [env_urls[idx] for idx in env_inds]
     avs = [attack_vectors[idx] for idx in av_inds]
     env_fns = [create_env(env, avs, delay, cfg) for env in envs]
-    env = DummyVecEnv(env_fns)
+    #env = DummyVecEnv(env_fns)
+    env = SubprocVecEnv(env_fns)
     learn(env=env, **alg_kwargs)
 

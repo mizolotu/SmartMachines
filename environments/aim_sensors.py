@@ -46,7 +46,7 @@ class AimSensors(gym.Env):
         f_scores, f_counts = self._get_score()
         self.flows, f_state, p_state = self._get_state()
         t_state = time()
-        print('Step in {0} took {1} seconds'.format(self.env_ip, t_state - t_start))
+        # print('Step in {0} took {1} seconds'.format(self.env_ip, t_state - t_start))
         return f_state, f_scores, False, self.flows
 
     def reset(self):

@@ -82,18 +82,23 @@ class SubprocVecEnv(VecEnv):
     def step_wait(self):
         self._assert_not_closed()
         results = [remote.recv() for remote in self.remotes]
-        results = _flatten_list(results)
+        #results = _flatten_list(results)
         self.waiting = False
-        obs, rews, dones, infos = zip(*results)
-        return _flatten_obs(obs), np.stack(rews), np.stack(dones), infos
+        #obs, rews, dones, flows = zip(*results)
+        obs = [np.array(r[0][0]) for r in results]
+        rews = [np.array(r[0][1]) for r in results]
+        dones = [np.array(r[0][2]) for r in results]
+        flows = [r[0][3] for r in results]
+        return obs, rews, dones, flows # _flatten_obs(obs), np.stack(rews), np.stack(dones), flows
 
     def reset(self):
         self._assert_not_closed()
         for remote in self.remotes:
             remote.send(('reset', None))
-        obs = [remote.recv() for remote in self.remotes]
-        obs = _flatten_list(obs)
-        return _flatten_obs(obs)
+        obs_flows = [remote.recv() for remote in self.remotes]
+        obs = [np.array(of[0][0]) for of in obs_flows]
+        flows = [of[0][1] for of in obs_flows]
+        return obs, flows
 
     def close_extras(self):
         self.closed = True

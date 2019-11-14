@@ -110,7 +110,7 @@ def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2
 
     if load_path is not None and osp.isfile(load_path):
         model.load(load_path)
-        print('Loaded {0}'.format(load_path))
+        print('Loaded model from {0}'.format(load_path))
     # Instantiate the runner object
     runner = Runner(env=env, model=model, nsteps=nsteps, gamma=gamma, lam=lam)
     if eval_env is not None:
