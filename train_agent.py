@@ -48,11 +48,9 @@ if __name__ == '__main__':
     # experiment parameters
 
     policy = 'mlp'
-    episode_duration = 20
-    t_start = 5
     delay = 0.0
-    n_steps = 100
-    n_episodes = 1000
+    n_steps = 25
+    n_episodes = 100000
     n_total_steps = n_episodes * n_steps
     save_interval = 10
     cfg_file = 'config.json'
