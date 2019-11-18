@@ -85,7 +85,12 @@ class AimSensors(gym.Env):
         return r.json()
 
     def _take_action(self, ai):
-        requests.post('http://{0}/action'.format(self.env_ip), json={'patterns': self.flows, 'action_inds': ai.tolist()})
+        if type(ai).__name__ != 'list':
+            ai = ai.tolist()
+        requests.post('http://{0}/action'.format(self.env_ip), json={'patterns': self.flows, 'action_inds': ai})
+
+    def _get_log(self):
+        requests.get('http://{0}/log'.format(self.env_ip))
 
     def _get_score(self):
         ready = False
