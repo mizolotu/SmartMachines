@@ -99,7 +99,7 @@ def learn(env,
           total_timesteps=100000,
           nsteps=100,
           buffer_size=50000,
-          exploration_fraction=1.0,
+          exploration_fraction=0.0,
           exploration_final_eps=0.0,
           train_freq=1,
           batch_size=32,
@@ -237,14 +237,25 @@ def learn(env,
     U.initialize()
     update_target()
     episode_rewards = [0.0]
+    normal_flows = [0.0]
+    attack_flows = [0.0]
+    infected_devices = [0.0]
     saved_mean_reward = None
     obs, flows = env.reset()
     reset = True
 
     log_path = 'logs/dqn/{0}'.format(network)
+    tb_path = os.path.join(log_path, 'tb')
     checkpoint_path = os.path.join(log_path, 'checkpoints')
     format_strs = os.getenv('MARA_LOG_FORMAT', 'stdout,log,csv,tensorboard').split(',')
     logger.configure(os.path.abspath(log_path), format_strs)
+    for the_file in os.listdir(tb_path):
+        file_path = os.path.join(tb_path, the_file)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+        except Exception as e:
+            print(e)
 
     with tempfile.TemporaryDirectory() as td:
         td = checkpoint_path or td
@@ -286,7 +297,11 @@ def learn(env,
                     action = act(np.array(obs[e][i])[None], update_eps=update_eps, **kwargs)[0]
                     env_actions[-1].append(action)
             reset = False
-            new_obs, rew, _, new_flows = env.step(env_actions)
+            new_obs, rew, _, infos = env.step(env_actions)
+            new_flows = [info['flows'] for info in infos]
+            n_normal = [info['n_normal_flows'] for info in infos]
+            n_attack = [info['n_attack_flows'] for info in infos]
+            n_infected = [info['n_infected'] for info in infos]
 
             # Store transition in the replay buffer.
 
@@ -302,11 +317,20 @@ def learn(env,
             obs = new_obs
             flows = new_flows
 
-            episode_rewards[-1] += np.mean(rew)
+            rew_flat = []
+            for r in rew:
+                rew_flat.extend(r)
+            episode_rewards[-1] += np.mean(rew_flat)
+            normal_flows[-1] += np.mean(n_normal)
+            attack_flows[-1] += np.mean(n_attack)
+            infected_devices[-1] += np.mean(n_infected)
             if t > 0 and t % nsteps == 0:
                 done = True
                 obs, flows = env.reset()
                 episode_rewards.append(0.0)
+                normal_flows.append(0.0)
+                attack_flows.append(0.0)
+                infected_devices.append(0.0)
                 reset = True
             else:
                 done = False
@@ -328,12 +352,18 @@ def learn(env,
                 # Update target network periodically.
                 update_target()
 
-            mean_100ep_reward = round(np.mean(episode_rewards[-101:-1]), 1)
+            mean_100ep_reward = round(np.mean(episode_rewards[-101:-1]), 2)
+            mean_100ep_normal_flows = round(np.mean(normal_flows[-101:-1]), 2)
+            mean_100ep_attack_flows = round(np.mean(attack_flows[-101:-1]), 2)
+            mean_100ep_infected_devices = round(np.mean(infected_devices[-101:-1]), 2)
             num_episodes = len(episode_rewards)
             if done and print_freq is not None and len(episode_rewards) % print_freq == 0:
                 logger.record_tabular("steps", t)
                 logger.record_tabular("episodes", num_episodes)
-                logger.record_tabular("mean 100 episode reward", mean_100ep_reward)
+                logger.record_tabular("normal flows", mean_100ep_normal_flows)
+                logger.record_tabular("attack flows", mean_100ep_attack_flows)
+                logger.record_tabular("reward", mean_100ep_reward)
+                logger.record_tabular("infected devices", mean_100ep_infected_devices)
                 logger.record_tabular("% time spent exploring", int(100 * exploration.value(t)))
                 logger.dump_tabular()
 

@@ -95,5 +95,5 @@ class LinearSchedule(object):
 
     def value(self, t):
         """See Schedule.value"""
-        fraction = min(float(t) / self.schedule_timesteps, 1.0)
+        fraction = min(float(t) / (self.schedule_timesteps + 1e-10), 1.0)
         return self.initial_p + fraction * (self.final_p - self.initial_p)

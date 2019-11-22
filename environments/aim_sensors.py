@@ -8,19 +8,20 @@ class AimSensors(gym.Env):
 
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, env_ip, attack_vectors, delay, cfg):
+    def __init__(self, env_ip, attack_vectors, cfg, delay=0.0):
         super(AimSensors, self).__init__()
         self.env_ip = env_ip
         self.attack_vectors = attack_vectors
         self.delay = delay
         self.flows = []
+        self.attack_flows = []
 
         # connect to the backend to retrieve state and action information
 
         ready = False
         while not ready:
             try:
-                flows, f_state, p_state = self._get_state()
+                flows, f_state, p_state, infected = self._get_state()
                 actions, action_categories = self._get_actions()
                 stack_size = len(f_state[0])
                 frame_size = len(f_state[0][0])
@@ -38,34 +39,47 @@ class AimSensors(gym.Env):
         self.action_space = spaces.Discrete(action_size)
 
     def step(self, action_list):
+        action_list = np.asarray(action_list, dtype=int)
+
         t_start = time()
         self._take_action(action_list)
         t_action = time()
         if t_action < t_start + self.delay:
             sleep(t_start + self.delay - t_action)
         f_scores, f_counts = self._get_score()
-        self.flows, f_state, p_state = self._get_state()
-        t_state = time()
-        # print('Step in {0} took {1} seconds'.format(self.env_ip, t_state - t_start))
-        return f_state, f_scores, False, self.flows
+        self.flows, f_state, p_state, infected_devices = self._get_state()
+        n_normal = len([x for x in f_scores if x > 0])
+        n_attack = len([x for x in f_scores if x < 0])
+        n_infected = len(infected_devices)
+        return f_state, f_scores, False, {'flows': self.flows, 'n_normal_flows': n_normal, 'n_attack_flows': n_attack, 'n_infected': n_infected}
 
     def reset(self):
         self._reset_env()
         self._start_episode()
-        self.flows, f_state, p_state = self._get_state()
+        self.flows, f_state, p_state, infected = self._get_state()
         return f_state, self.flows
 
     def render(self, mode='human', close=False):
         pass
 
     def _get_state(self):
-        flows, f_state_framed, p_state_framed = requests.get('http://{0}/state'.format(self.env_ip)).json()
+        flows, f_state_framed, p_state_framed, infected_devices = requests.get('http://{0}/state'.format(self.env_ip)).json()
         f_state = []
         n = len(f_state_framed[0])
         for i in range(n):
             series = [frame[i] for frame in f_state_framed]
             f_state.append(series)
-        return flows, f_state, p_state_framed
+
+        # get attack flows
+
+        if self.attack_flows == []:
+            log = self._get_log()
+            af = log['debug']['attack_flows']
+            for item in af:
+                self.attack_flows.append('.'.join(item))
+                self.attack_flows.append('.'.join(item[::-1]))
+
+        return flows, f_state, p_state_framed, infected_devices
 
     def _get_actions(self):
         return requests.get('http://{0}/actions'.format(self.env_ip)).json()
@@ -90,7 +104,7 @@ class AimSensors(gym.Env):
         requests.post('http://{0}/action'.format(self.env_ip), json={'patterns': self.flows, 'action_inds': ai})
 
     def _get_log(self):
-        requests.get('http://{0}/log'.format(self.env_ip))
+        return requests.get('http://{0}/log'.format(self.env_ip)).json()
 
     def _get_score(self):
         ready = False
