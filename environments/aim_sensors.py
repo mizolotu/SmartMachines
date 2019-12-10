@@ -23,8 +23,7 @@ class AimSensors(gym.Env):
             try:
                 flows, f_state, p_state, infected = self._get_state()
                 actions, action_categories = self._get_actions()
-                stack_size = len(f_state[0])
-                frame_size = len(f_state[0][0])
+                frame_size = len(f_state[0])
                 action_size = len(actions)
                 self._set_gamma(cfg['gamma'])
                 for key in cfg['coeff'].keys():
@@ -35,7 +34,7 @@ class AimSensors(gym.Env):
                 print(e)
                 print('Trying to connect to {0}...'.format(env_ip))
                 sleep(1)
-        self.observation_space = spaces.Box(low=0, high=np.inf, shape=(stack_size, frame_size), dtype=np.float32)
+        self.observation_space = spaces.Box(low=0, high=np.inf, shape=(1, frame_size), dtype=np.float32)
         self.action_space = spaces.Discrete(action_size)
 
     def step(self, action_list):
@@ -63,12 +62,7 @@ class AimSensors(gym.Env):
         pass
 
     def _get_state(self):
-        flows, f_state_framed, p_state_framed, infected_devices = requests.get('http://{0}/state'.format(self.env_ip)).json()
-        f_state = []
-        n = len(f_state_framed[0])
-        for i in range(n):
-            series = [frame[i] for frame in f_state_framed]
-            f_state.append(series)
+        flows, f_state, p_state, infected_devices = requests.get('http://{0}/state'.format(self.env_ip)).json()
 
         # get attack flows
 
@@ -79,7 +73,7 @@ class AimSensors(gym.Env):
                 self.attack_flows.append('.'.join(item))
                 self.attack_flows.append('.'.join(item[::-1]))
 
-        return flows, f_state, p_state_framed, infected_devices
+        return flows, f_state, p_state, infected_devices
 
     def _get_actions(self):
         return requests.get('http://{0}/actions'.format(self.env_ip)).json()

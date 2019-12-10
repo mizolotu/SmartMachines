@@ -103,7 +103,7 @@ def learn(env,
           exploration_final_eps=0.0,
           train_freq=1,
           batch_size=32,
-          print_freq=10,
+          print_freq=1,
           save_interval=10,
           checkpoint_path=None,
           learning_starts=10,
@@ -304,15 +304,16 @@ def learn(env,
             n_infected = [info['n_infected'] for info in infos]
 
             # Store transition in the replay buffer.
-
             for e in range(len(obs)):
-                for i in range(len(flows)):
+                for i in range(len(flows[e])):
                     if flows[e][i] in new_flows[e]:
                         new_i = new_flows[e].index(flows[e][i])
                         done_i = 0
+                        obs_next = new_obs[e][new_i]
                     else:
                         done_i = 1
-                    replay_buffer.add(obs[e][i], env_actions[e][i], rew[e][i], new_obs[e][new_i], done_i)
+                        obs_next = obs[e][i]
+                    replay_buffer.add(obs[e][i], env_actions[e][i], rew[e][i], obs_next, done_i)
 
             obs = new_obs
             flows = new_flows
@@ -320,10 +321,11 @@ def learn(env,
             rew_flat = []
             for r in rew:
                 rew_flat.extend(r)
-            episode_rewards[-1] += np.mean(rew_flat)
+            if len(rew_flat) > 0:
+                episode_rewards[-1] += np.mean(rew_flat)
             normal_flows[-1] += np.mean(n_normal)
             attack_flows[-1] += np.mean(n_attack)
-            infected_devices[-1] += np.mean(n_infected)
+            infected_devices[-1] = np.mean(n_infected)
             if t > 0 and t % nsteps == 0:
                 done = True
                 obs, flows = env.reset()
