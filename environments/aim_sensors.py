@@ -49,6 +49,7 @@ class AimSensors(gym.Env):
                         coeff_attack = np.linalg.solve(lls_a, lls_b)
                     except Exception:
                         coeff_attack = np.linalg.lstsq(lls_a, lls_b, rcond=None)[0]
+                    print(coeff_attack)
                 print('Coefficients for {0}: alpha = {1}, beta = {2}'.format(attack, coeff_attack[0], coeff_attack[1]))
                 coeff[attack] = {'a': coeff_attack[0], 'b': coeff_attack[1]}
                 gamma = np.mean(g)
