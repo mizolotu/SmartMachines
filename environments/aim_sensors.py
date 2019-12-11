@@ -47,6 +47,10 @@ class AimSensors(gym.Env):
                     b_normal = n_arr[:, 2] * g
                     a_attack = n_arr[:, 0]
                     b_attack = n_arr[:, 1]
+                    print(a_normal)
+                    print(b_normal)
+                    print(a_attack)
+                    print(b_attack)
                     coeff_attack = np.array([np.mean(a_normal / a_attack), np.mean(b_normal / b_attack)])
 
                 print('Coefficients for {0}: alpha = {1}, beta = {2}'.format(attack, coeff_attack[0], coeff_attack[1]))
