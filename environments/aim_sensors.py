@@ -43,12 +43,12 @@ class AimSensors(gym.Env):
                         else:
                             n_arr = np.vstack([n_arr, self._calculate_coefficients(attack, cfg_steps)])
                     g = n_arr[:, 3] / n_arr[:, 2]  # number of resolved packets / number of dns replies
-                    a_normal = n_arr[:, 2] * g + n_arr[:, 3]
-                    b_normal = n_arr[:, 4]
+                    a_normal = n_arr[:, 3] + n_arr[:, 4]
+                    b_normal = n_arr[:, 2] * g
                     a_attack = n_arr[:, 0]
                     b_attack = n_arr[:, 1]
                     coeff_attack = np.array([np.mean(a_normal / a_attack), np.mean(b_normal / b_attack)])
-                    print(coeff_attack)
+
                 print('Coefficients for {0}: alpha = {1}, beta = {2}'.format(attack, coeff_attack[0], coeff_attack[1]))
                 coeff[attack] = {'a': coeff_attack[0], 'b': coeff_attack[1]}
                 gamma = np.mean(g)
