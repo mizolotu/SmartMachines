@@ -18,10 +18,31 @@ def constfn(val):
         return val
     return f
 
-def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2048, ent_coef=0.0, lr=3e-4,
-            vf_coef=0.5,  max_grad_norm=0.5, gamma=0.99, lam=0.95,
-            log_interval=10, nminibatches=4, noptepochs=4, cliprange=0.2,
-            save_interval=0, load_path=None, model_fn=None, update_fn=None, init_fn=None, mpi_rank_weight=1, comm=None, **network_kwargs):
+def learn(network, env,
+    nsteps=100,
+    total_timesteps=1e6,
+    eval_env=None,
+    seed=None,
+    ent_coef=0.0,
+    lr=lambda f: 1e-2 * f,
+    vf_coef=0.5,
+    max_grad_norm=0.5,
+    gamma=0.99,
+    lam=0.95,
+    log_interval=10,
+    nminibatches=4,
+    noptepochs=4,
+    cliprange=0.2,
+    save_interval=0,
+    load_path=None,
+    model_fn=None,
+    update_fn=None,
+    init_fn=None,
+    mpi_rank_weight=1,
+    comm=None,
+    **network_kwargs
+):
+
     '''
     Learn policy using PPO algorithm (https://arxiv.org/abs/1707.06347)
 
@@ -73,8 +94,6 @@ def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2
     **network_kwargs:                 keyword arguments to the policy / network builder. See baselines.common/policies.py/build_policy and arguments to a particular type of network
                                       For instance, 'mlp' network architecture has arguments num_hidden and num_layers.
 
-
-
     '''
 
     set_global_seeds(seed)
@@ -116,9 +135,9 @@ def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2
     if eval_env is not None:
         eval_runner = Runner(env = eval_env, model = model, nsteps = nsteps, gamma = gamma, lam= lam)
 
-    epinfobuf = deque(maxlen=100)
+    epinfobuf = deque(maxlen=log_interval*nenvs)
     if eval_env is not None:
-        eval_epinfobuf = deque(maxlen=100)
+        eval_epinfobuf = deque(maxlen=log_interval*nenvs)
 
     if init_fn is not None:
         init_fn()
@@ -201,20 +220,17 @@ def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2
             # Calculates if value function is a good predicator of the returns (ev > 1)
             # or if it's just worse than predicting nothing (ev =< 0)
             ev = explained_variance(values, returns)
-            logger.logkv("misc/serial_timesteps", update * nsteps)
-            logger.logkv("misc/nupdates", update)
-            logger.logkv("misc/total_timesteps", update * nsteps * nenvs)
-            logger.logkv("fps", fps)
-            logger.logkv("misc/explained_variance", float(ev))
-            logger.logkv('eprewmean', safemean([epinfo['r'] for epinfo in epinfobuf]))
-            logger.logkv('eplenmean', safemean([epinfo['l'] for epinfo in epinfobuf]))
-            if eval_env is not None:
-                logger.logkv('eval_eprewmean', safemean([epinfo['r'] for epinfo in eval_epinfobuf]) )
-                logger.logkv('eval_eplenmean', safemean([epinfo['l'] for epinfo in eval_epinfobuf]) )
-            logger.logkv('misc/time_elapsed', tnow - tfirststart)
+            logger.logkv("stats/updates", update)
+            logger.logkv("stats/timestamps", update * nenvs * nsteps)
+            logger.logkv("stats/normal flows", safemean([epinfo['n_normal'] for epinfo in epinfobuf]))
+            logger.logkv("stats/attack flows", safemean([epinfo['n_attack'] for epinfo in epinfobuf]))
+            logger.logkv("stats/reward", safemean([epinfo['r'] for epinfo in epinfobuf]))
+            logger.logkv("stats/infected devices", safemean([epinfo['n_infected'] for epinfo in epinfobuf]))
+            logger.logkv("stats/fps", fps)
+            logger.logkv("stats/explained_variance", float(ev))
+            logger.logkv('stats/time_elapsed', tnow - tfirststart)
             for (lossval, lossname) in zip(lossvals, model.loss_names):
                 logger.logkv('loss/' + lossname, lossval)
-
             logger.dumpkvs()
         if save_interval and (update % save_interval == 0 or update == 1) and logger.get_dir() and is_mpi_root:
             checkdir = osp.join(logger.get_dir(), 'checkpoints')
@@ -229,6 +245,3 @@ def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2
 # Avoid division error when calculate the mean (in our case if epinfo is empty returns np.nan, not return an error)
 def safemean(xs):
     return np.nan if len(xs) == 0 else np.mean(xs)
-
-
-

@@ -1,13 +1,12 @@
 import sys, json
 
 from environments.aim_sensors import AimSensors
-from algorithms.bs_common.vec_env import DummyVecEnv
 from algorithms.bs_common.vec_env import SubprocVecEnv
 from algorithms.flow_ppo.ppo import learn as learn_ppo
 from algorithms.flow_dqn.deepq import learn as learn_dqn
 
-def create_env(env, attack_vectors, cfg):
-    return lambda : AimSensors(env, attack_vectors, cfg)
+def create_env(env, attack_vectors, cfg_dir):
+    return lambda : AimSensors(env, attack_vectors, cfg_dir)
 
 if __name__ == '__main__':
 
@@ -40,9 +39,7 @@ if __name__ == '__main__':
 
     # experiment parameters
 
-    env_cfg_file = 'config.json'
-    with open(env_cfg_file, 'r') as f:
-        cfg = json.load(f)
+    env_cfg_dir = 'environment_coefficients'
     alg_cfg_dir = 'algorithm_configurations'
     with open('{0}/{1}.json'.format(alg_cfg_dir, alg_cfg_file), 'r') as f:
         alg_kwargs = json.load(f)
@@ -51,7 +48,7 @@ if __name__ == '__main__':
 
     envs = [env_urls[idx] for idx in env_inds]
     avs = [attack_vectors[idx] for idx in av_inds]
-    env_fns = [create_env(env, avs, cfg) for env in envs]
+    env_fns = [create_env(env, avs, env_cfg_dir) for env in envs]
     env = SubprocVecEnv(env_fns)
 
     # start training
@@ -62,4 +59,3 @@ if __name__ == '__main__':
     elif algorithm == 'dqn':
         learn = learn_dqn
     learn(env=env, **alg_kwargs)
-

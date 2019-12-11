@@ -2,14 +2,7 @@ import numpy as np
 from algorithms.bs_common.runners import AbstractEnvRunner
 
 class Runner(AbstractEnvRunner):
-    """
-    We use this object to make a mini batch of experiences
-    __init__:
-    - Initialize the runner
 
-    run():
-    - Make a mini batch
-    """
     def __init__(self, *, env, model, nsteps, gamma, lam):
         super().__init__(env=env, model=model, nsteps=nsteps)
         # Lambda used in GAE (General Advantage Estimation)
@@ -23,6 +16,9 @@ class Runner(AbstractEnvRunner):
         mb_obs, mb_rewards, mb_actions, mb_values, mb_dones, mb_neglogpacs, mb_flows = [],[],[],[],[],[],[]
         mb_states = self.states
         epinfos = []
+        n_normal = [0 for _ in range(self.nenv)]
+        n_attack = [0 for _ in range(self.nenv)]
+        n_infected = [0 for _ in range(self.nenv)]
         # For n in range number of steps
         for _ in range(self.nsteps):
             # Given observations, get action value and neglopacs
@@ -33,9 +29,6 @@ class Runner(AbstractEnvRunner):
             neglogpacs = [[] for _ in range(self.nenv)]
             for i in range(self.nenv):
                 actions[i], values[i], self.states[i], neglogpacs[i] = self.model.step(self.obs[i], S=self.states, M=self.dones)
-                #print(len(actions[i]))
-                #for f, a in zip(self.flows[i], actions[i]):
-                #    print('{0}: {1}'.format(f, a))
             mb_obs.append(self.obs.copy())
             mb_flows.append(self.flows.copy())
             mb_actions.append(actions)
@@ -45,16 +38,15 @@ class Runner(AbstractEnvRunner):
 
             # Take actions in env and look the results
             # Infos contains a ton of useful informations
-            self.obs, rewards, self.dones, self.flows = self.env.step(actions)
+            self.obs, rewards, self.dones, infos = self.env.step(actions)
+            for i in range(self.nenv):
+                n_normal[i] += infos[i]['n_normal_flows']
+                n_attack[i] += infos[i]['n_attack_flows']
+                n_infected[i] = infos[i]['n_infected'] if infos[i]['n_infected'] >= n_infected[i] else n_infected[i]
+            self.flows = [info['flows'] for info in infos]
             mb_rewards.append(rewards)
 
-        #batch of steps to batch of rollouts
-
-        #mb_obs = np.asarray(mb_obs, dtype=self.obs.dtype)
-        #mb_rewards = np.asarray(mb_rewards, dtype=np.float32)
-        #mb_actions = np.asarray(mb_actions)
-        #mb_values = np.asarray(mb_values, dtype=np.float32)
-        #mb_neglogpacs = np.asarray(mb_neglogpacs, dtype=np.float32)
+        # batch of steps to batch of rollouts
 
         states_b = []
         actions_b = []
@@ -88,7 +80,7 @@ class Runner(AbstractEnvRunner):
                         rewards_per_flow[i].append(mb_rewards[j][e][idx])
                         neglopacs_per_flow[i].append(mb_neglogpacs[j][e][idx])
                         values_per_flow[i].append(mb_values[j][e][idx])
-            states_per_flow = [np.array(x, ndmin=3) for x in states_per_flow]
+            states_per_flow = [np.array(x, ndmin=2) for x in states_per_flow]
             actions_per_flow = [np.array(x) for x in actions_per_flow]
             rewards_per_flow = [np.array(x, ndmin=1).reshape(len(x), 1) for x in rewards_per_flow]
             neglopacs_per_flow = [np.vstack(x) for x in neglopacs_per_flow]
@@ -108,7 +100,6 @@ class Runner(AbstractEnvRunner):
                 returns_per_flow[i] = advantages + values_per_flow[i]
 
             scores = []
-            n_actions = 0
             for i in range(n_flows):
                 states_b.extend(states_per_flow[i])
                 actions_b.extend(actions_per_flow[i])
@@ -116,10 +107,15 @@ class Runner(AbstractEnvRunner):
                 values_b.extend(values_per_flow[i])
                 neglopacs_b.extend(neglopacs_per_flow[i])
                 scores.extend(rewards_per_flow[i])
-                n_actions += len(actions_per_flow[i])
-            epinfos.append({'r': np.mean(scores), 'l': n_actions})
 
-        mb_obs = np.array(states_b, ndmin=3)
+            epinfos.append({
+                'r': np.mean(scores),
+                'n_normal': n_normal[e],
+                'n_attack': n_attack[e],
+                'n_infected': n_infected[e]
+            })
+
+        mb_obs = np.array(states_b, ndmin=2)
         mb_actions = np.array(actions_b)
         mb_returns = np.vstack(returns_b)
         mb_masks = np.zeros_like(mb_returns)

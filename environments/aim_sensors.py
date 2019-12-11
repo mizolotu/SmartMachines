@@ -1,5 +1,6 @@
-import gym, requests
+import gym, requests, json
 import numpy as np
+import os.path as osp
 
 from gym import spaces
 from time import sleep, time
@@ -8,7 +9,7 @@ class AimSensors(gym.Env):
 
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, env_ip, attack_vectors, cfg, delay=0.0):
+    def __init__(self, env_ip, attack_vectors, cfg_dir, delay=0.25, cfg_episodes=0, cfg_steps=100):
         super(AimSensors, self).__init__()
         self.env_ip = env_ip
         self.attack_vectors = attack_vectors
@@ -16,7 +17,47 @@ class AimSensors(gym.Env):
         self.flows = []
         self.attack_flows = []
 
-        # connect to the backend to retrieve state and action information
+        # reconfigure backend if needed
+
+        env_cfg_file = osp.join(cfg_dir, '{0}.json'.format(env_ip.split(':')[0]))
+        try:
+            with open(env_cfg_file, 'r') as f:
+                cfg = json.load(f)
+        except Exception as e:
+            print(e)
+            cfg = {}
+        if cfg == {}:
+            cfg_episodes = np.maximum(cfg_episodes, 10)
+        if cfg_episodes > 0:
+            cfg = {}
+            coeff = {}
+            gamma = 0
+            for attack in attack_vectors:
+                coeff_attack = - np.ones(2)
+                while np.any(coeff_attack < 0):
+                    print('Configuring backend {0} for {1}'.format(self.env_ip, attack))
+                    n_arr = None
+                    for e in range(cfg_episodes):
+                        if n_arr is None:
+                            n_arr = self._calculate_coefficients(attack, cfg_steps)
+                        else:
+                            n_arr = np.vstack([n_arr, self._calculate_coefficients(attack, cfg_steps)])
+                    g = n_arr[:, 3] / n_arr[:, 2]  # number of resolved packets / number of dns replies
+                    lls_b = n_arr[:, 2] * g + n_arr[:, 3] + n_arr[:, 4]
+                    lls_a = n_arr[:, 0:2]
+                    try:
+                        coeff_attack = np.linalg.solve(lls_a, lls_b)
+                    except Exception:
+                        coeff_attack = np.linalg.lstsq(lls_a, lls_b, rcond=None)[0]
+                print('Coefficients for {0}: alpha = {1}, beta = {2}'.format(attack, coeff_attack[0], coeff_attack[1]))
+                coeff[attack] = {'a': coeff_attack[0], 'b': coeff_attack[1]}
+                gamma = np.mean(g)
+            cfg['coeff'] = coeff
+            cfg['gamma'] = gamma
+            with open(env_cfg_file, 'w') as f:
+                json.dump(cfg, f)
+
+        # retrieve state and action information
 
         ready = False
         while not ready:
@@ -34,12 +75,11 @@ class AimSensors(gym.Env):
                 print(e)
                 print('Trying to connect to {0}...'.format(env_ip))
                 sleep(1)
-        self.observation_space = spaces.Box(low=0, high=np.inf, shape=(1, frame_size), dtype=np.float32)
+        self.observation_space = spaces.Box(low=0, high=np.inf, shape=(frame_size,), dtype=np.float32)
         self.action_space = spaces.Discrete(action_size)
 
     def step(self, action_list):
         action_list = np.asarray(action_list, dtype=int)
-
         t_start = time()
         self._take_action(action_list)
         t_action = time()
@@ -60,6 +100,26 @@ class AimSensors(gym.Env):
 
     def render(self, mode='human', close=False):
         pass
+
+    def _calculate_coefficients(self, attack, cfg_steps):
+        self._reset_env()
+        self._start_episode(attack)
+        sum_deltas = np.zeros(5)
+        count_deltas = 0
+        self.flows, f_state, p_state, infected_devices = self._get_state()
+        t_state = time()
+        for step in range(cfg_steps):
+            action_list = [0 for _ in self.flows]
+            self._take_action(action_list)
+            t_action = time()
+            if t_action < t_state + self.delay:
+                sleep(t_state + self.delay - t_action)
+            _, counts = self._get_score()
+            self.flows, f_state, p_state, infected_devices = self._get_state()
+            count_deltas += 1
+            sum_deltas += np.array(counts)
+        n_cf = sum_deltas / count_deltas
+        return n_cf
 
     def _get_state(self):
         flows, f_state, p_state, infected_devices = requests.get('http://{0}/state'.format(self.env_ip)).json()
@@ -87,8 +147,11 @@ class AimSensors(gym.Env):
     def _reset_env(self):
         return requests.get('http://{0}/reset'.format(self.env_ip)).json()
 
-    def _start_episode(self):
-        attack = self.attack_vectors[np.random.randint(0, len(self.attack_vectors))]
+    def _start_episode(self, attack=None):
+        if attack is None:
+            attack = self.attack_vectors[np.random.randint(0, len(self.attack_vectors))]
+        else:
+            assert attack in self.attack_vectors
         r = requests.post('http://{0}/start_episode'.format(self.env_ip), json={'attack': attack, 'start': self.delay})
         return r.json()
 
