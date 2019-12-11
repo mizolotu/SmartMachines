@@ -9,7 +9,7 @@ class AimSensors(gym.Env):
 
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, env_ip, attack_vectors, cfg_dir, delay=0.25, cfg_episodes=0, cfg_steps=100):
+    def __init__(self, env_ip, attack_vectors, cfg_dir, delay=0.25, cfg_episodes=10, cfg_steps=100):
         super(AimSensors, self).__init__()
         self.env_ip = env_ip
         self.attack_vectors = attack_vectors
@@ -43,12 +43,11 @@ class AimSensors(gym.Env):
                         else:
                             n_arr = np.vstack([n_arr, self._calculate_coefficients(attack, cfg_steps)])
                     g = n_arr[:, 3] / n_arr[:, 2]  # number of resolved packets / number of dns replies
-                    lls_b = n_arr[:, 2] * g + n_arr[:, 3] + n_arr[:, 4]
-                    lls_a = n_arr[:, 0:2]
-                    try:
-                        coeff_attack = np.linalg.solve(lls_a, lls_b)
-                    except Exception:
-                        coeff_attack = np.linalg.lstsq(lls_a, lls_b, rcond=None)[0]
+                    a_normal = n_arr[:, 2] * g + n_arr[:, 3]
+                    b_normal = n_arr[:, 4]
+                    a_attack = n_arr[:, 0]
+                    b_attack = n_arr[:, 1]
+                    coeff_attack = np.array([np.mean(a_normal / a_attack), np.mean(b_normal / b_attack)])
                     print(coeff_attack)
                 print('Coefficients for {0}: alpha = {1}, beta = {2}'.format(attack, coeff_attack[0], coeff_attack[1]))
                 coeff[attack] = {'a': coeff_attack[0], 'b': coeff_attack[1]}
