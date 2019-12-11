@@ -27,7 +27,7 @@ class AimSensors(gym.Env):
             print(e)
             cfg = {}
         if cfg == {}:
-            cfg_episodes = np.maximum(cfg_episodes, 10)
+            cfg_episodes = np.maximum(cfg_episodes, 2)
         if cfg_episodes > 0:
             cfg = {}
             coeff = {}
