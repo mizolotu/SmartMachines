@@ -9,7 +9,7 @@ class AimSensors(gym.Env):
 
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, env_ip, attack_vectors, cfg_dir, delay=0.25, cfg_episodes=10, cfg_steps=100):
+    def __init__(self, env_ip, attack_vectors, cfg_dir, delay=0.1, cfg_episodes=10, cfg_steps=100):
         super(AimSensors, self).__init__()
         self.env_ip = env_ip
         self.attack_vectors = attack_vectors
@@ -42,6 +42,7 @@ class AimSensors(gym.Env):
                             n_arr = self._calculate_coefficients(attack, cfg_steps)
                         else:
                             n_arr = np.vstack([n_arr, self._calculate_coefficients(attack, cfg_steps)])
+                        print(n_arr)
                     g = n_arr[:, 3] / n_arr[:, 2]  # number of resolved packets / number of dns replies
                     a_normal = np.mean(n_arr[:, 3] + n_arr[:, 4])
                     b_normal = np.mean(n_arr[:, 2] * g)

@@ -235,10 +235,10 @@ def learn(network, env,
         if save_interval and (update % save_interval == 0 or update == 1) and logger.get_dir() and is_mpi_root:
             checkdir = osp.join(logger.get_dir(), 'checkpoints')
             os.makedirs(checkdir, exist_ok=True)
-            savepath = osp.join(checkdir, '%.5i'%update)
+            #savepath = osp.join(checkdir, '%.5i'%update)
             savepath_last = osp.join(checkdir, 'last')
-            print('Saving to {0} and {1}'.format(savepath, savepath_last))
-            model.save(savepath)
+            print('Saving to {0}'.format(savepath_last))
+            #model.save(savepath)
             model.save(savepath_last)
     return model
 
