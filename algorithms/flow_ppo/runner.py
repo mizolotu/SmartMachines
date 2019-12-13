@@ -47,6 +47,9 @@ class Runner(AbstractEnvRunner):
                             normal_vs_attack[e][key] = infos[e]['stats']['n_{0}'.format(key_1)][key_2]
                         else:
                             normal_vs_attack[e][key] += infos[e]['stats']['n_{0}'.format(key_1)][key_2]
+            for e in range(self.nenv):
+                for key in normal_vs_attack[e].keys():
+                    normal_vs_attack[e][key] /= self.nsteps
             n_infected = [info['stats']['n_infected'] for info in infos]
             self.flows = [info['flows'] for info in infos]
             mb_rewards.append(rewards)
