@@ -15,7 +15,6 @@ class AimSensors(gym.Env):
         self.attack_vectors = attack_vectors
         self.delay = delay
         self.flows = []
-        self.attack_flows = []
 
         # reconfigure backend if needed
 
@@ -63,7 +62,7 @@ class AimSensors(gym.Env):
         ready = False
         while not ready:
             try:
-                flows, f_state, p_state, infected = self._get_state()
+                flows, f_state, p_state, stats = self._get_state()
                 actions, action_categories = self._get_actions()
                 frame_size = len(f_state[0])
                 action_size = len(actions)
@@ -87,11 +86,16 @@ class AimSensors(gym.Env):
         if t_action < t_start + self.delay:
             sleep(t_start + self.delay - t_action)
         f_scores, f_counts = self._get_score()
-        self.flows, f_state, p_state, infected_devices = self._get_state()
-        n_normal = len([x for x in f_scores if x > 0])
-        n_attack = len([x for x in f_scores if x < 0])
-        n_infected = len(infected_devices)
-        return f_state, f_scores, False, {'flows': self.flows, 'n_normal_flows': n_normal, 'n_attack_flows': n_attack, 'n_infected': n_infected}
+        self.flows, f_state, p_state, stats = self._get_state()
+        info = {
+            'flows': self.flows,
+            'stats': {
+                'n_normal': stats['normal_flow_counts'],
+                'n_attack': stats['attack_flow_counts'],
+                'n_infected': len(stats['infected_devices'])
+            }
+        }
+        return f_state, f_scores, False, info
 
     def reset(self):
         self._reset_env()
@@ -107,7 +111,7 @@ class AimSensors(gym.Env):
         self._start_episode(attack)
         sum_deltas = np.zeros(5)
         count_deltas = 0
-        self.flows, f_state, p_state, infected_devices = self._get_state()
+        self.flows, f_state, p_state, stats = self._get_state()
         t_state = time()
         for step in range(cfg_steps):
             action_list = [0 for _ in self.flows]
@@ -116,25 +120,15 @@ class AimSensors(gym.Env):
             if t_action < t_state + self.delay:
                 sleep(t_state + self.delay - t_action)
             _, counts = self._get_score()
-            self.flows, f_state, p_state, infected_devices = self._get_state()
+            self.flows, f_state, p_state, stats = self._get_state()
             count_deltas += 1
             sum_deltas += np.array(counts)
         n_cf = sum_deltas / count_deltas
         return n_cf
 
     def _get_state(self):
-        flows, f_state, p_state, infected_devices = requests.get('http://{0}/state'.format(self.env_ip)).json()
-
-        # get attack flows
-
-        if self.attack_flows == []:
-            log = self._get_log()
-            af = log['debug']['attack_flows']
-            for item in af:
-                self.attack_flows.append('.'.join(item))
-                self.attack_flows.append('.'.join(item[::-1]))
-
-        return flows, f_state, p_state, infected_devices
+        flows, f_state, p_state, stats = requests.get('http://{0}/state'.format(self.env_ip)).json()
+        return flows, f_state, p_state, stats
 
     def _get_actions(self):
         return requests.get('http://{0}/actions'.format(self.env_ip)).json()
@@ -160,9 +154,6 @@ class AimSensors(gym.Env):
         if type(ai).__name__ != 'list':
             ai = ai.tolist()
         requests.post('http://{0}/action'.format(self.env_ip), json={'patterns': self.flows, 'action_inds': ai})
-
-    def _get_log(self):
-        return requests.get('http://{0}/log'.format(self.env_ip)).json()
 
     def _get_score(self):
         ready = False

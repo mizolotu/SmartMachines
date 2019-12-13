@@ -132,12 +132,7 @@ def learn(network, env,
         print('Loaded model from {0}'.format(load_path))
     # Instantiate the runner object
     runner = Runner(env=env, model=model, nsteps=nsteps, gamma=gamma, lam=lam)
-    if eval_env is not None:
-        eval_runner = Runner(env = eval_env, model = model, nsteps = nsteps, gamma = gamma, lam= lam)
-
     epinfobuf = deque(maxlen=log_interval*nenvs)
-    if eval_env is not None:
-        eval_epinfobuf = deque(maxlen=log_interval*nenvs)
 
     if init_fn is not None:
         init_fn()
@@ -167,14 +162,8 @@ def learn(network, env,
         nbatch = obs.shape[0]
         nbatch_train = nbatch // nminibatches
 
-        if eval_env is not None:
-            eval_obs, eval_returns, eval_masks, eval_actions, eval_values, eval_neglogpacs, eval_states, eval_epinfos = eval_runner.run() #pylint: disable=E0632
-
         if update % log_interval == 0 and is_mpi_root: logger.info('Done.')
-
         epinfobuf.extend(epinfos)
-        if eval_env is not None:
-            eval_epinfobuf.extend(eval_epinfos)
 
         # Here what we're going to do is for each minibatch calculate the loss and append it.
         mblossvals = []
@@ -217,28 +206,27 @@ def learn(network, env,
             update_fn(update)
 
         if update % log_interval == 0 or update == 1:
-            # Calculates if value function is a good predicator of the returns (ev > 1)
-            # or if it's just worse than predicting nothing (ev =< 0)
             ev = explained_variance(values, returns)
             logger.logkv("stats/updates", update)
             logger.logkv("stats/timestamps", update * nenvs * nsteps)
-            logger.logkv("stats/normal flows", safemean([epinfo['n_normal'] for epinfo in epinfobuf]))
-            logger.logkv("stats/attack flows", safemean([epinfo['n_attack'] for epinfo in epinfobuf]))
             logger.logkv("stats/reward", safemean([epinfo['r'] for epinfo in epinfobuf]))
-            logger.logkv("stats/infected devices", safemean([epinfo['n_infected'] for epinfo in epinfobuf]))
+            logger.logkv("stats/infected_devices", safemean([epinfo['n_infected'] for epinfo in epinfobuf]))
             logger.logkv("stats/fps", fps)
             logger.logkv("stats/explained_variance", float(ev))
             logger.logkv('stats/time_elapsed', tnow - tfirststart)
             for (lossval, lossname) in zip(lossvals, model.loss_names):
                 logger.logkv('loss/' + lossname, lossval)
+            logger.logkv("normal/dns", safemean([epinfo['normal_vs_attack']['normal_dns'] for epinfo in epinfobuf]))
+            logger.logkv("normal/device", safemean([epinfo['normal_vs_attack']['normal_device'] for epinfo in epinfobuf]))
+            logger.logkv("normal/admin", safemean([epinfo['normal_vs_attack']['normal_admin'] for epinfo in epinfobuf]))
+            logger.logkv("attack/target", safemean([epinfo['normal_vs_attack']['attack_target'] for epinfo in epinfobuf]))
+            logger.logkv("attack/cc", safemean([epinfo['normal_vs_attack']['attack_cc'] for epinfo in epinfobuf]))
             logger.dumpkvs()
         if save_interval and (update % save_interval == 0 or update == 1) and logger.get_dir() and is_mpi_root:
             checkdir = osp.join(logger.get_dir(), 'checkpoints')
             os.makedirs(checkdir, exist_ok=True)
-            #savepath = osp.join(checkdir, '%.5i'%update)
             savepath_last = osp.join(checkdir, 'last')
             print('Saving to {0}'.format(savepath_last))
-            #model.save(savepath)
             model.save(savepath_last)
     return model
 

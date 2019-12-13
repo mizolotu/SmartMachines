@@ -16,10 +16,10 @@ class Runner(AbstractEnvRunner):
         mb_obs, mb_rewards, mb_actions, mb_values, mb_dones, mb_neglogpacs, mb_flows = [],[],[],[],[],[],[]
         mb_states = self.states
         epinfos = []
-        n_normal = [0 for _ in range(self.nenv)]
-        n_attack = [0 for _ in range(self.nenv)]
-        n_infected = [0 for _ in range(self.nenv)]
+        normal_vs_attack = [{} for _ in range(self.nenv)]
+
         # For n in range number of steps
+
         for _ in range(self.nsteps):
             # Given observations, get action value and neglopacs
             # We already have self.obs because Runner superclass run self.obs[:] = env.reset() on init
@@ -37,12 +37,17 @@ class Runner(AbstractEnvRunner):
             mb_dones.append(self.dones)
 
             # Take actions in env and look the results
-            # Infos contains a ton of useful informations
+
             self.obs, rewards, self.dones, infos = self.env.step(actions)
-            for i in range(self.nenv):
-                n_normal[i] += infos[i]['n_normal_flows']
-                n_attack[i] += infos[i]['n_attack_flows']
-                n_infected[i] = infos[i]['n_infected'] if infos[i]['n_infected'] >= n_infected[i] else n_infected[i]
+            for e in range(self.nenv):
+                for key_1 in ['normal', 'attack']:
+                    for key_2 in infos[e]['stats']['n_{0}'.format(key_1)].keys():
+                        key = '{0}_{1}'.format(key_1, key_2)
+                        if key not in normal_vs_attack[e].keys():
+                            normal_vs_attack[e][key] = infos[e]['stats']['n_{0}'.format(key_1)][key_2]
+                        else:
+                            normal_vs_attack[e][key] += infos[e]['stats']['n_{0}'.format(key_1)][key_2]
+            n_infected = [info['stats']['n_infected'] for info in infos]
             self.flows = [info['flows'] for info in infos]
             mb_rewards.append(rewards)
 
@@ -110,8 +115,7 @@ class Runner(AbstractEnvRunner):
 
             epinfos.append({
                 'r': np.mean(scores),
-                'n_normal': n_normal[e],
-                'n_attack': n_attack[e],
+                'normal_vs_attack': normal_vs_attack[e],
                 'n_infected': n_infected[e]
             })
 
@@ -121,26 +125,6 @@ class Runner(AbstractEnvRunner):
         mb_masks = np.zeros_like(mb_returns)
         mb_values = np.vstack(values_b)
         mb_neglogpacs = np.vstack(neglopacs_b)
-
-        #mb_dones = np.asarray(mb_dones, dtype=np.bool)
-        #last_values = [[] for _ in range(self.nenv)]
-        #for i in range(self.nenv):
-        #    last_values[i] = self.model.value(self.obs[i], S=self.states, M=self.dones)
-
-        # discount/bootstrap off value fn
-        #mb_returns = np.zeros_like(mb_rewards)
-        #mb_advs = np.zeros_like(mb_rewards)
-        #lastgaelam = 0
-        #for t in reversed(range(self.nsteps)):
-        #    if t == self.nsteps - 1:
-        #        nextnonterminal = 1.0 - self.dones
-        #        nextvalues = last_values
-        #    else:
-        #        nextnonterminal = 1.0 - mb_dones[t+1]
-        #        nextvalues = mb_values[t+1]
-        #    delta = mb_rewards[t] + self.gamma * nextvalues * nextnonterminal - mb_values[t]
-        #    mb_advs[t] = lastgaelam = delta + self.gamma * self.lam * nextnonterminal * lastgaelam
-        #mb_returns = mb_advs + mb_values
 
         return (mb_obs, *map(sf01, (mb_returns, mb_masks, mb_actions, mb_values, mb_neglogpacs)), None, epinfos)
 
