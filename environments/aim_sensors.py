@@ -9,7 +9,7 @@ class AimSensors(gym.Env):
 
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, env_ip, attack_vectors, cfg_dir, delay=0.1, cfg_episodes=0, cfg_steps=100):
+    def __init__(self, env_ip, attack_vectors, cfg_dir, delay=0.1, cfg_episodes=0, cfg_steps=3):
         super(AimSensors, self).__init__()
         self.env_ip = env_ip
         self.attack_vectors = attack_vectors
