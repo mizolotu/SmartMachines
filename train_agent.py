@@ -58,4 +58,5 @@ if __name__ == '__main__':
         learn = learn_ppo
     elif algorithm == 'dqn':
         learn = learn_dqn
-    learn(env=env, **alg_kwargs)
+    log_prefix = '_'.join(avs)
+    learn(env=env, log_prefix=log_prefix, **alg_kwargs)

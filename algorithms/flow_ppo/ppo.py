@@ -40,6 +40,7 @@ def learn(network, env,
     init_fn=None,
     mpi_rank_weight=1,
     comm=None,
+    log_prefix='',
     **network_kwargs
 ):
 
@@ -141,7 +142,7 @@ def learn(network, env,
     tfirststart = time.perf_counter()
 
     format_strs = os.getenv('MARA_LOG_FORMAT', 'stdout,log,csv,tensorboard').split(',')
-    logger.configure(os.path.abspath('logs/ppo/{0}'.format(network)), format_strs)
+    logger.configure(os.path.abspath('logs/{0}/ppo/{1}'.format(log_prefix, network)), format_strs)
 
     nupdates = total_timesteps # //nbatch
     for update in range(1, nupdates+1):
