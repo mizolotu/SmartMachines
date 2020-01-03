@@ -41,13 +41,15 @@ if __name__ == '__main__':
 
     env_cfg_dir = 'environment_coefficients'
     alg_cfg_dir = 'algorithm_configurations'
+    envs = [env_urls[idx] for idx in env_inds]
+    avs = [attack_vectors[idx] for idx in av_inds]
+    log_prefix = '_'.join(avs)
     with open('{0}/{1}.json'.format(alg_cfg_dir, alg_cfg_file), 'r') as f:
         alg_kwargs = json.load(f)
+    alg_kwargs['load_path'] = 'logs/{0}/{1}'.format(log_prefix,alg_kwargs['load_path'])
 
     # create environments
 
-    envs = [env_urls[idx] for idx in env_inds]
-    avs = [attack_vectors[idx] for idx in av_inds]
     env_fns = [create_env(env, avs, env_cfg_dir) for env in envs]
     env = SubprocVecEnv(env_fns)
 
@@ -58,5 +60,4 @@ if __name__ == '__main__':
         learn = learn_ppo
     elif algorithm == 'dqn':
         learn = learn_dqn
-    log_prefix = '_'.join(avs)
     learn(env=env, log_prefix=log_prefix, **alg_kwargs)
