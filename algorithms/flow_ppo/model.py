@@ -34,6 +34,7 @@ class Model(object):
         with tf.compat.v1.variable_scope('ppo2_model', reuse=tf.compat.v1.AUTO_REUSE):
             # CREATE OUR TWO MODELS
             # act_model that is used for sampling
+
             act_model = policy(nbatch_act, 1, sess)
 
             # Train model for training

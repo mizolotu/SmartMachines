@@ -29,7 +29,7 @@ def learn(network, env,
     max_grad_norm=0.5,
     gamma=0.99,
     lam=0.95,
-    log_interval=10,
+    log_interval=1,
     nminibatches=4,
     noptepochs=4,
     cliprange=0.2,
@@ -182,6 +182,7 @@ def learn(network, env,
                     slices = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
                     mblossvals.append(model.train(lrnow, cliprangenow, *slices))
         else: # recurrent version
+
             assert nenvs % nminibatches == 0
             envsperbatch = nenvs // nminibatches
             envinds = np.arange(nenvs)
