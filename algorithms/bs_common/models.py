@@ -103,9 +103,12 @@ def mlp(num_layers=2, num_hidden=64, activation=tf.tanh, layer_norm=False):
 
 
 @register("cnn")
-def cnn(**conv_kwargs):
+def cnn(nh=64):
     def network_fn(X):
-        return nature_cnn(X, **conv_kwargs)
+        conv1 = tf.keras.layers.Conv1D(filters=nh, kernel_size=4, strides=1, activation='relu')(X)
+        h = tf.keras.layers.Flatten()(conv1)
+        h = fc(h, 'mlp_fc0', nh=nh, init_scale=np.sqrt(2))
+        return h
     return network_fn
 
 @register("impala_cnn")
@@ -158,26 +161,10 @@ def lstm(nlstm=128, layer_norm=False):
     """
 
     def network_fn(X, nenv=1):
-        nbatch = X.shape[0]
-        nsteps = nbatch // nenv
-
-        h = tf.layers.flatten(X)
-
-        M = tf.placeholder(tf.float32, [nbatch]) #mask (done t-1)
-        S = tf.placeholder(tf.float32, [nenv, 2*nlstm]) #states
-
-        xs = batch_to_seq(h, nenv, nsteps)
-        ms = batch_to_seq(M, nenv, nsteps)
-
-        if layer_norm:
-            h5, snew = lnlstm(xs, ms, S, scope='lnlstm', nh=nlstm)
-        else:
-            h5, snew = lstm(xs, ms, S, scope='lstm', nh=nlstm)
-
-        h = seq_to_batch(h5)
-        initial_state = np.zeros(S.shape.as_list(), dtype=float)
-
-        return h, {'S':S, 'M':M, 'state':snew, 'initial_state':initial_state}
+        lstm_cell = tf.keras.layers.LSTMCell(units=nlstm)
+        rnn_output = tf.keras.layers.RNN(lstm_cell)(X)
+        h = tf.keras.layers.Flatten()(rnn_output)
+        return h
 
     return network_fn
 

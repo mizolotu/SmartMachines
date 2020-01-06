@@ -1,5 +1,6 @@
 import numpy as np
 from algorithms.bs_common.runners import AbstractEnvRunner
+from time import time
 
 class Runner(AbstractEnvRunner):
 
@@ -28,6 +29,7 @@ class Runner(AbstractEnvRunner):
             self.states = [[] for _ in range(self.nenv)]
             neglogpacs = [[] for _ in range(self.nenv)]
             for i in range(self.nenv):
+                t_start = time()
                 actions[i], values[i], self.states[i], neglogpacs[i] = self.model.step(self.obs[i], S=self.states, M=self.dones)
             mb_obs.append(self.obs.copy())
             mb_flows.append(self.flows.copy())
@@ -37,7 +39,7 @@ class Runner(AbstractEnvRunner):
             mb_dones.append(self.dones)
 
             # Take actions in env and look the results
-
+            t_start = time()
             self.obs, rewards, self.dones, infos = self.env.step(actions)
             for e in range(self.nenv):
                 for key_1 in ['normal', 'attack']:
