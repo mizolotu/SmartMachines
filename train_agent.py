@@ -5,8 +5,8 @@ from algorithms.bs_common.vec_env import SubprocVecEnv
 from algorithms.flow_ppo.ppo import learn as learn_ppo
 from algorithms.flow_dqn.deepq import learn as learn_dqn
 
-def create_env(env, attack_vectors, cfg_dir):
-    return lambda : AimSensors(env, attack_vectors, cfg_dir)
+def create_env(env, attack_vectors, cfg_dir, stack_size):
+    return lambda : AimSensors(env, attack_vectors, cfg_dir, stack_size=stack_size)
 
 if __name__ == '__main__':
 
@@ -47,10 +47,14 @@ if __name__ == '__main__':
     with open('{0}/{1}.json'.format(alg_cfg_dir, alg_cfg_file), 'r') as f:
         alg_kwargs = json.load(f)
     alg_kwargs['load_path'] = 'logs/{0}/{1}'.format(log_prefix,alg_kwargs['load_path'])
+    if alg_kwargs['network'] == 'cnn':
+        stack_size = 4
+    else:
+        stack_size = 1
 
     # create environments
 
-    env_fns = [create_env(env, avs, env_cfg_dir) for env in envs]
+    env_fns = [create_env(env, avs, env_cfg_dir, stack_size=stack_size) for env in envs]
     env = SubprocVecEnv(env_fns)
 
     # start training

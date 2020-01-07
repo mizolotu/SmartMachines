@@ -32,12 +32,13 @@ class Model(object):
             comm = MPI.COMM_WORLD
 
         with tf.compat.v1.variable_scope('ppo2_model', reuse=tf.compat.v1.AUTO_REUSE):
-            # CREATE OUR TWO MODELS
-            # act_model that is used for sampling
 
+            # CREATE OUR TWO MODELS
+
+            print('Creating act model')
             act_model = policy(nbatch_act, 1, sess)
 
-            # Train model for training
+            print('Creating train model')
             if microbatch_size is None:
                 train_model = policy(nbatch_train, nsteps, sess)
             else:

@@ -67,7 +67,7 @@ def batch_to_seq(h, nbatch, nsteps, flat=False):
     if flat:
         h = tf.reshape(h, [nbatch, nsteps])
     else:
-        h = tf.reshape(h, [nbatch, nsteps, -1])
+        h = tf.reshape(h, [nbatch, nsteps, tf.shape(h)[1]])
     return [tf.squeeze(v, [1]) for v in tf.split(axis=1, num_or_size_splits=nsteps, value=h)]
 
 def seq_to_batch(h, flat = False):

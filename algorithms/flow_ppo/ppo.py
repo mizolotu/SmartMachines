@@ -116,7 +116,7 @@ def learn(network, env,
 
     # Calculate the batch_size
     nbatch = nenvs * nsteps
-    nbatch_train = nbatch // nminibatches
+    nbatch_train = None # nbatch // nminibatches
     is_mpi_root = (MPI is None or MPI.COMM_WORLD.Get_rank() == 0)
 
     # Instantiate the model object (that creates act_model and train_model)
@@ -182,20 +182,35 @@ def learn(network, env,
                     slices = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
                     mblossvals.append(model.train(lrnow, cliprangenow, *slices))
         else: # recurrent version
-            nminibatches = nenvs
-            assert nenvs % nminibatches == 0
-            envsperbatch = nenvs // nminibatches
-            envinds = np.arange(nenvs)
-            flatinds = np.arange(nenvs * nsteps).reshape(nenvs, nsteps)
+            # Index of each element of batch_size
+            # Create the indices array
+            inds = np.arange(nbatch)
             for _ in range(noptepochs):
-                np.random.shuffle(envinds)
-                for start in range(0, nenvs, envsperbatch):
-                    end = start + envsperbatch
-                    mbenvinds = envinds[start:end]
-                    mbflatinds = flatinds[mbenvinds].ravel()
-                    slices = (arr[mbflatinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
-                    mbstates = states[mbenvinds]
-                    mblossvals.append(model.train(lrnow, cliprangenow, *slices, mbstates))
+                # Randomize the indexes
+                np.random.shuffle(inds)
+                # 0 to batch_size with batch_train_size step
+                for start in range(0, nbatch, nbatch_train):
+                    end = start + nbatch_train
+                    mbinds = inds[start:end]
+                    mbobs = obs[mbinds]
+                    print(mbobs.shape)
+                    slices = (arr[mbinds] for arr in (returns, masks, actions, values, neglogpacs))
+                    mbstates = states[mbinds]
+                    mblossvals.append(model.train(lrnow, cliprangenow, mbobs, *slices, mbstates))
+            #nminibatches = nenvs
+            #assert nenvs % nminibatches == 0
+            #envsperbatch = nenvs // nminibatches
+            #envinds = np.arange(nenvs)
+            #flatinds = np.arange(nenvs * nsteps).reshape(nenvs, nsteps)
+            #for _ in range(noptepochs):
+            #    np.random.shuffle(envinds)
+            #    for start in range(0, nenvs, envsperbatch):
+            #        end = start + envsperbatch
+            #        mbenvinds = envinds[start:end]
+            #        mbflatinds = flatinds[mbenvinds].ravel()
+            #        slices = (arr[mbflatinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
+            #        mbstates = states[mbenvinds]
+            #        mblossvals.append(model.train(lrnow, cliprangenow, *slices, mbstates))
 
         # Feedforward --> get losses --> update
         lossvals = np.mean(mblossvals, axis=0)
