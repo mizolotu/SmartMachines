@@ -33,7 +33,7 @@ class Runner(AbstractEnvRunner):
 
             obs_lens = [self.obs[i].shape[0] for i in range(self.nenv)]
             i_max = np.argmax(obs_lens)
-            obs_padded = np.zeros((self.nenv, self.obs[i_max].shape[0], self.obs[i_max].shape[1]))
+            obs_padded = np.zeros((self.nenv, *self.obs[i_max].shape))
             for i in range(self.nenv):
                 obs_padded[i, :self.obs[i].shape[0], :] = self.obs[i]
             for i in range(self.obs[i_max].shape[0]):
