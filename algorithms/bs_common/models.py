@@ -171,7 +171,7 @@ def lstm(nlstm=128, layer_norm=False):
     def network_fn(X, nenv=1):
         nbatch = X.shape[0]
         nsteps = nbatch // nenv
-        print(nbatch, nsteps)
+        print(nbatch, nenv, nsteps)
         h = tf.layers.flatten(X)
 
         M = tf.placeholder(tf.float32, [nbatch]) #mask (done t-1)
@@ -179,7 +179,6 @@ def lstm(nlstm=128, layer_norm=False):
 
         xs = batch_to_seq(h, nenv, nsteps)
         #xs = [tf.squeeze(v, [1]) for v in tf.split(axis=1, num_or_size_splits=nsteps, value=X)]
-        print(nenv, nsteps)
         ms = batch_to_seq(M, nenv, nsteps)
         #ms = [tf.squeeze(v, [1]) for v in tf.split(axis=1, num_or_size_splits=nsteps, value=M)]
 

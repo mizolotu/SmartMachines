@@ -63,10 +63,10 @@ def fc(x, scope, nh, *, init_scale=1.0, init_bias=0.0):
         return tf.matmul(x, w)+b
 
 def batch_to_seq(h, nbatch, nsteps, flat=False):
-    print(nbatch, nsteps)
     if flat:
         h = tf.reshape(h, [nbatch, nsteps])
     else:
+        print(tf.shape(h))
         h = tf.reshape(h, [nbatch, nsteps, tf.shape(h)[1]])
     return [tf.squeeze(v, [1]) for v in tf.split(axis=1, num_or_size_splits=nsteps, value=h)]
 
