@@ -94,10 +94,7 @@ class AimSensors(gym.Env):
         if t_action < t_start + self.delay:
             sleep(t_start + self.delay - t_action)
         f_scores, f_counts = self._get_score()
-        if self.stack_size > 1:
-            scores = self._stack_score(f_scores)
-        else:
-            scores = f_scores
+        scores = f_scores
         self.flows, f_state, p_state, stats = self._get_state()
         if self.stack_size > 1:
             obs, flows = self._stack_obs(f_state, self.flows)
@@ -132,17 +129,13 @@ class AimSensors(gym.Env):
     def _stack_obs(self, obs, flows):
         self.flow_stack.append(flows)
         self.obs_stack.append(obs)
-        all_flows = []
-        for frame in self.flow_stack:
-            all_flows.extend(frame)
-        flows_s = list(set(all_flows))
-        obs_s = np.zeros((len(flows_s), self.observation_space.shape[0], self.observation_space.shape[1]))
-        for i,flow in enumerate(flows_s):
+        obs_s = np.zeros((len(flows), self.observation_space.shape[0], self.observation_space.shape[1]))
+        for i,flow in enumerate(flows):
             for j,frame in enumerate(self.flow_stack):
                 if flow in frame:
                     k = frame.index(flow)
                     obs_s[i, j, :] = self.obs_stack[j][k]
-        return obs_s, flows_s
+        return obs_s, flows
 
     def _stack_score(self, score):
         self.score_stack.append(score)
