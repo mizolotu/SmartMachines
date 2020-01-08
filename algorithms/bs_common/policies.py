@@ -145,6 +145,8 @@ def build_policy(env, policy_network, value_network=None,  normalize_observation
                 if recurrent_tensors is not None:
                     # recurrent architecture, need a few more steps
                     nenv = nbatch // nsteps
+                    print('Policies')
+                    print(nenv, nbatch, nsteps)
                     assert nenv > 0, 'Bad input for recurrent policy: batch size {} smaller than nsteps {}'.format(nbatch, nsteps)
                     policy_latent, recurrent_tensors = policy_network(encoded_x, nenv)
                     extra_tensors.update(recurrent_tensors)

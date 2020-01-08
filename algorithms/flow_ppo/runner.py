@@ -88,7 +88,9 @@ class Runner(AbstractEnvRunner):
         values_b = []
         neglopacs_b = []
 
+
         for e in range(self.nenv):
+            count = 0
             flows = [each[e] for each in mb_flows]
             all_flows = []
             for state_flows in flows:
@@ -140,6 +142,7 @@ class Runner(AbstractEnvRunner):
 
             scores = []
             for i in range(n_flows):
+                count += len(obs_per_flow[i])
                 obs_b.extend(obs_per_flow[i])
                 states_b.extend(states_per_flow[i])
                 actions_b.extend(actions_per_flow[i])
@@ -148,17 +151,23 @@ class Runner(AbstractEnvRunner):
                 neglopacs_b.extend(neglopacs_per_flow[i])
                 scores.extend(rewards_per_flow[i])
 
+            print(count)
             epinfos.append({
                 'r': np.mean(scores),
                 'normal_vs_attack': normal_vs_attack[e],
-                'n_infected': n_infected[e]
+                'n_infected': n_infected[e],
+                'batch_size': count
             })
 
         mb_obs = np.array(obs_b, ndmin=2)
         mb_states = np.array(states_b, ndmin=2)
         if np.any(np.array(mb_states.shape) == 0):
             mb_states = None
-        print(mb_obs.shape, mb_states)
+
+        print(mb_obs.shape)
+        if mb_states is not None:
+            print(mb_states.shape)
+
         mb_actions = np.array(actions_b)
         mb_returns = np.vstack(returns_b)
         mb_masks = np.zeros_like(mb_returns)
