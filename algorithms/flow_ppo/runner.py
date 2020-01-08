@@ -46,14 +46,6 @@ class Runner(AbstractEnvRunner):
                             self.states[e] = states_i[e]
                             states[e].append(states_i[e])
                         neglogpacs[e].append(neglogpacs_i[e])
-                #for j in range(len(self.obs[i])):
-                #    masks = [False]
-                #    actions_, values_, self.states[i], neglogpacs_ = self.model.step(self.obs[i][j, :], S=self.states[i], M=masks)
-                #    actions[i].extend(actions_)
-                #    values[i].extend(values_)
-                #    states[i].append(self.states[i])
-                #    dones[i].append(self.dones[i])
-                #    neglogpacs[i].extend(neglogpacs_)
             mb_obs.append(self.obs.copy())
             mb_states.append(states.copy())
             mb_flows.append(self.flows.copy())
@@ -162,7 +154,10 @@ class Runner(AbstractEnvRunner):
                 neglopacs.extend(neglopacs_per_flow[i])
                 scores.extend(rewards_per_flow[i])
             obs_b.extend([obs[i] for i in indexes_sorted])
-            states_b.extend([states[i] for i in indexes_sorted])
+            if len(states) == len(indexes_sorted):
+                states_b.extend([states[i] for i in indexes_sorted])
+            else:
+                states_b.extend([])
             actions_b.extend([actions[i] for i in indexes_sorted])
             returns_b.extend([returns[i] for i in indexes_sorted])
             values_b.extend([values[i] for i in indexes_sorted])
