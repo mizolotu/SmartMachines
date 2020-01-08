@@ -87,7 +87,7 @@ class Runner(AbstractEnvRunner):
         returns_b = []
         values_b = []
         neglopacs_b = []
-
+        scores_b = []
 
         for e in range(self.nenv):
             count = 0
@@ -104,6 +104,7 @@ class Runner(AbstractEnvRunner):
             values_per_flow = [[] for _ in range(n_flows)]
             returns_per_flow = [[] for _ in range(n_flows)]
             neglopacs_per_flow = [[] for _ in range(n_flows)]
+            indexes = []
             for i, flow in enumerate(all_flows):
                 for j in range(len(mb_obs)):
                     flows = mb_flows[j][e]
@@ -120,6 +121,8 @@ class Runner(AbstractEnvRunner):
                         rewards_per_flow[i].append(mb_rewards[j][e][idx])
                         neglopacs_per_flow[i].append(mb_neglogpacs[j][e][idx])
                         values_per_flow[i].append(mb_values[j][e][idx])
+                        indexes.append(j)
+            indexes = np.array(indexes)
             obs_per_flow = [np.array(x, ndmin=2) for x in obs_per_flow]
             states_per_flow = [np.array(x, ndmin=2) for x in states_per_flow]
             actions_per_flow = [np.array(x) for x in actions_per_flow]
@@ -140,20 +143,34 @@ class Runner(AbstractEnvRunner):
                         advantages[t, 0] = lastgaelam
                 returns_per_flow[i] = advantages + values_per_flow[i]
 
+
+            indexes_sorted = np.argsort(indexes)
+            obs = []
+            states = []
+            actions = []
+            returns = []
+            values = []
+            neglopacs = []
             scores = []
             for i in range(n_flows):
                 count += len(obs_per_flow[i])
-                obs_b.extend(obs_per_flow[i])
-                states_b.extend(states_per_flow[i])
-                actions_b.extend(actions_per_flow[i])
-                returns_b.extend(returns_per_flow[i])
-                values_b.extend(values_per_flow[i])
-                neglopacs_b.extend(neglopacs_per_flow[i])
+                obs.extend(obs_per_flow[i])
+                states.extend(states_per_flow[i])
+                actions.extend(actions_per_flow[i])
+                returns.extend(returns_per_flow[i])
+                values.extend(values_per_flow[i])
+                neglopacs.extend(neglopacs_per_flow[i])
                 scores.extend(rewards_per_flow[i])
+            obs_b.extend([obs[i] for i in indexes_sorted])
+            states_b.extend([states[i] for i in indexes_sorted])
+            actions_b.extend([actions[i] for i in indexes_sorted])
+            returns_b.extend([returns[i] for i in indexes_sorted])
+            values_b.extend([values[i] for i in indexes_sorted])
+            neglopacs_b.extend([neglopacs[i] for i in indexes_sorted])
+            scores_b.extend([scores[i] for i in indexes_sorted])
 
-            print(count)
             epinfos.append({
-                'r': np.mean(scores),
+                'r': np.mean(scores_b),
                 'normal_vs_attack': normal_vs_attack[e],
                 'n_infected': n_infected[e],
                 'batch_size': count
