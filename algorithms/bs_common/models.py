@@ -171,7 +171,6 @@ def lstm(nlstm=128, layer_norm=False):
     def network_fn(X, nenv=1):
         nbatch = X.shape[0]
         nsteps = nbatch // nenv
-        print(nbatch, nenv, nsteps)
         h = tf.layers.flatten(X)
 
         M = tf.placeholder(tf.float32, [nbatch]) #mask (done t-1)
