@@ -10,7 +10,7 @@ class AimSensors(gym.Env):
 
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, env_ip, attack_vectors, cfg_dir, delay=0.1, cfg_episodes=0, cfg_steps=100, stack_size=4):
+    def __init__(self, env_ip, attack_vectors, cfg_dir, delay=0.1, cfg_episodes=0, cfg_steps=100, stack_size=1):
         super(AimSensors, self).__init__()
         self.env_ip = env_ip
         self.attack_vectors = attack_vectors
@@ -80,7 +80,10 @@ class AimSensors(gym.Env):
                 print(e)
                 print('Trying to connect to {0}...'.format(env_ip))
                 sleep(1)
-        self.observation_space = spaces.Box(low=0, high=np.inf, shape=(stack_size, frame_size), dtype=np.float32)
+        if self.stack_size > 1:
+            self.observation_space = spaces.Box(low=0, high=np.inf, shape=(stack_size, frame_size), dtype=np.float32)
+        else:
+            self.observation_space = spaces.Box(low=0, high=np.inf, shape=(frame_size,), dtype=np.float32)
         self.action_space = spaces.Discrete(action_size)
 
     def step(self, action_list):
@@ -91,9 +94,13 @@ class AimSensors(gym.Env):
         if t_action < t_start + self.delay:
             sleep(t_start + self.delay - t_action)
         f_scores, f_counts = self._get_score()
-        scores = self._stack_score(f_scores)
+        scores = f_scores
         self.flows, f_state, p_state, stats = self._get_state()
-        obs, flows = self._stack_obs(f_state, self.flows)
+        if self.stack_size > 1:
+            obs, flows = self._stack_obs(f_state, self.flows)
+        else:
+            obs = f_state
+            flows = self.flows
         info = {
             'flows': flows,
             'stats': {
@@ -112,23 +119,23 @@ class AimSensors(gym.Env):
         self.obs_stack = deque(maxlen=self.stack_size)
         self.score_stack = deque(maxlen=self.stack_size)
         self.flows, f_state, p_state, stats = self._get_state()
-        obs, flows = self._stack_obs(f_state, self.flows)
+        if self.stack_size > 1:
+            obs, flows = self._stack_obs(f_state, self.flows)
+        else:
+            obs = f_state
+            flows = self.flows
         return obs, flows
 
     def _stack_obs(self, obs, flows):
         self.flow_stack.append(flows)
         self.obs_stack.append(obs)
-        all_flows = []
-        for frame in self.flow_stack:
-            all_flows.extend(frame)
-        flows_s = list(set(all_flows))
-        obs_s = np.zeros((len(flows_s), self.observation_space.shape[0], self.observation_space.shape[1]))
-        for i,flow in enumerate(flows_s):
+        obs_s = np.zeros((len(flows), self.observation_space.shape[0], self.observation_space.shape[1]))
+        for i,flow in enumerate(flows):
             for j,frame in enumerate(self.flow_stack):
                 if flow in frame:
                     k = frame.index(flow)
                     obs_s[i, j, :] = self.obs_stack[j][k]
-        return obs_s, flows_s
+        return obs_s, flows
 
     def _stack_score(self, score):
         self.score_stack.append(score)

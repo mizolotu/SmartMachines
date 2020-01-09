@@ -29,8 +29,9 @@ def learn(network, env,
     max_grad_norm=0.5,
     gamma=0.99,
     lam=0.95,
-    log_interval=1,
+    log_interval=5,
     nminibatches=4,
+    nbatch_train=100,
     noptepochs=4,
     cliprange=0.2,
     save_interval=0,
@@ -115,8 +116,6 @@ def learn(network, env,
     ac_space = env.action_space
 
     # Calculate the batch_size
-    nbatch = nenvs * nsteps
-    nbatch_train = nbatch // nminibatches
     is_mpi_root = (MPI is None or MPI.COMM_WORLD.Get_rank() == 0)
 
     # Instantiate the model object (that creates act_model and train_model)
@@ -124,9 +123,19 @@ def learn(network, env,
         from algorithms.flow_ppo.model import Model
         model_fn = Model
 
-    model = model_fn(policy=policy, ob_space=ob_space, ac_space=ac_space, nbatch_act=nenvs, nbatch_train=nbatch_train,
-                    nsteps=nsteps, ent_coef=ent_coef, vf_coef=vf_coef,
-                    max_grad_norm=max_grad_norm, comm=comm, mpi_rank_weight=mpi_rank_weight)
+    model = model_fn(
+        policy=policy,
+        ob_space=ob_space,
+        ac_space=ac_space,
+        nbatch_act=nenvs,
+        nbatch_train=nbatch_train,
+        nsteps=nbatch_train,
+        ent_coef=ent_coef,
+        vf_coef=vf_coef,
+        max_grad_norm=max_grad_norm,
+        comm=comm,
+        mpi_rank_weight=mpi_rank_weight
+    )
 
     if load_path is not None and osp.isfile(load_path):
         model.load(load_path)
@@ -146,62 +155,107 @@ def learn(network, env,
 
     nupdates = total_timesteps # //nbatch
     for update in range(1, nupdates+1):
+
         #assert nbatch % nminibatches == 0
         # Start timer
+
         tstart = time.perf_counter()
         frac = 1.0 - (update - 1.0) / nupdates
+
         # Calculate the learning rate
+
         lrnow = lr(frac)
+
         # Calculate the cliprange
+
         cliprangenow = cliprange(frac)
 
         if update % log_interval == 0 and is_mpi_root: logger.info('Stepping environment...')
 
         # Get minibatch
+
         obs, returns, masks, actions, values, neglogpacs, states, epinfos = runner.run() #pylint: disable=E0632
 
         nbatch = obs.shape[0]
-        nbatch_train = nbatch // nminibatches
 
         if update % log_interval == 0 and is_mpi_root: logger.info('Done.')
         epinfobuf.extend(epinfos)
 
         # Here what we're going to do is for each minibatch calculate the loss and append it.
+
         mblossvals = []
         if states is None: # nonrecurrent version
+
             # Index of each element of batch_size
             # Create the indices array
+
             inds = np.arange(nbatch)
             for _ in range(noptepochs):
+
                 # Randomize the indexes
+
                 np.random.shuffle(inds)
+
                 # 0 to batch_size with batch_train_size step
+
                 for start in range(0, nbatch, nbatch_train):
                     end = start + nbatch_train
                     mbinds = inds[start:end]
+                    if len(mbinds) < nbatch_train:
+                        mbinds_ = np.random.choice(inds, nbatch_train - len(mbinds))
+                        mbinds = np.hstack([mbinds, mbinds_])
                     slices = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
                     mblossvals.append(model.train(lrnow, cliprangenow, *slices))
-        else: # recurrent version
-            nminibatches = nenvs
-            assert nenvs % nminibatches == 0
-            envsperbatch = nenvs // nminibatches
-            envinds = np.arange(nenvs)
-            flatinds = np.arange(nenvs * nsteps).reshape(nenvs, nsteps)
-            for _ in range(noptepochs):
-                np.random.shuffle(envinds)
-                for start in range(0, nenvs, envsperbatch):
-                    end = start + envsperbatch
-                    mbenvinds = envinds[start:end]
-                    mbflatinds = flatinds[mbenvinds].ravel()
-                    slices = (arr[mbflatinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
-                    mbstates = states[mbenvinds]
-                    mblossvals.append(model.train(lrnow, cliprangenow, *slices, mbstates))
 
-        # Feedforward --> get losses --> update
+        else: # recurrent version
+
+            # Index of each element of batch_size
+            # Create the indices array
+
+            envinds = np.arange(nenvs)
+            env_batch_sizes = [epinfos[i]['batch_size'] for i in envinds]
+            env_batch_starts = np.cumsum(env_batch_sizes) - env_batch_sizes
+
+            for _ in range(noptepochs):
+
+                np.random.shuffle(envinds)
+
+                for env_idx in envinds:
+                    inds = env_batch_starts[env_idx] + np.arange(epinfos[env_idx]['batch_size'])
+                    for start in range(0, epinfos[env_idx]['batch_size'], nbatch_train):
+                        end = start + nbatch_train
+                        mbinds = inds[start:end]
+                        if len(mbinds) < nbatch_train:
+                            mbinds_ = np.random.choice(inds, nbatch_train - len(mbinds))
+                            mbinds = np.hstack([mbinds, mbinds_])
+                            mask_length = len(mbinds_)
+                        else:
+                            mask_length = 0
+                    mbobs = obs[mbinds]
+                    slices_ = [arr[mbinds] for arr in (returns, masks, actions, values, neglogpacs)]
+                    slices = slices_.copy()
+                    if mask_length > 0:
+                        slices[1][-mask_length] = True
+                    mbstates = states[mbinds[0:1]]
+                    mblossvals.append(model.train(lrnow, cliprangenow, mbobs, *slices, mbstates))
+
+            #nminibatches = nenvs
+            #assert nenvs % nminibatches == 0
+            #envsperbatch = nenvs // nminibatches
+            #envinds = np.arange(nenvs)
+            #flatinds = np.arange(nenvs * nsteps).reshape(nenvs, nsteps)
+            #for _ in range(noptepochs):
+            #    np.random.shuffle(envinds)
+            #    for start in range(0, nenvs, envsperbatch):
+            #        end = start + envsperbatch
+            #        mbenvinds = envinds[start:end]
+            #        mbflatinds = flatinds[mbenvinds].ravel()
+            #        slices = (arr[mbflatinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
+            #        mbstates = states[mbenvinds]
+            #        mblossvals.append(model.train(lrnow, cliprangenow, *slices, mbstates))
+
         lossvals = np.mean(mblossvals, axis=0)
-        # End timer
         tnow = time.perf_counter()
-        # Calculate the fps (frame per second)
         fps = int(nbatch / (tnow - tstart))
 
         if update_fn is not None:
@@ -212,17 +266,27 @@ def learn(network, env,
             logger.logkv("stats/updates", update)
             logger.logkv("stats/timestamps", update * nenvs * nsteps)
             logger.logkv("stats/reward", safemean([epinfo['r'] for epinfo in epinfobuf]))
+            logger.logkv("stats/reward_min", np.min([epinfo['r'] for epinfo in epinfobuf]))
+            logger.logkv("stats/reward_max", np.max([epinfo['r'] for epinfo in epinfobuf]))
             logger.logkv("stats/infected_devices", safemean([epinfo['n_infected'] for epinfo in epinfobuf]))
             logger.logkv("stats/fps", fps)
             logger.logkv("stats/explained_variance", float(ev))
             logger.logkv('stats/time_elapsed', tnow - tfirststart)
             for (lossval, lossname) in zip(lossvals, model.loss_names):
                 logger.logkv('loss/' + lossname, lossval)
+            nnormal = [epinfo['normal_vs_attack']['normal_dns'] + epinfo['normal_vs_attack']['normal_device'] + epinfo['normal_vs_attack']['normal_admin']for epinfo in epinfobuf]
             logger.logkv("normal/dns", safemean([epinfo['normal_vs_attack']['normal_dns'] for epinfo in epinfobuf]))
             logger.logkv("normal/device", safemean([epinfo['normal_vs_attack']['normal_device'] for epinfo in epinfobuf]))
             logger.logkv("normal/admin", safemean([epinfo['normal_vs_attack']['normal_admin'] for epinfo in epinfobuf]))
+            nattack = [epinfo['normal_vs_attack']['attack_target'] + epinfo['normal_vs_attack']['attack_cc'] for epinfo in epinfobuf]
             logger.logkv("attack/target", safemean([epinfo['normal_vs_attack']['attack_target'] for epinfo in epinfobuf]))
             logger.logkv("attack/cc", safemean([epinfo['normal_vs_attack']['attack_cc'] for epinfo in epinfobuf]))
+            logger.logkv("stats/normal", safemean(nnormal))
+            logger.logkv("stats/normal_min", np.min(nnormal))
+            logger.logkv("stats/normal_max", np.max(nnormal))
+            logger.logkv("stats/attack", safemean(nattack))
+            logger.logkv("stats/attack_min", np.min(nattack))
+            logger.logkv("stats/attack_max", np.max(nattack))
             logger.dumpkvs()
         if save_interval and (update % save_interval == 0 or update == 1) and logger.get_dir() and is_mpi_root:
             checkdir = osp.join(logger.get_dir(), 'checkpoints')

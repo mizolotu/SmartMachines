@@ -88,7 +88,6 @@ class PolicyWithValue(object):
         -------
         (action, value estimate, next state, negative log likelihood of the action under current policy parameters) tuple
         """
-
         a, v, state, neglogp = self._evaluate([self.action, self.vf, self.state, self.neglogp], observation, **extra_feed)
         if state.size == 0:
             state = None
@@ -125,8 +124,8 @@ def build_policy(env, policy_network, value_network=None,  normalize_observation
     def policy_fn(nbatch=None, nsteps=None, sess=None, observ_placeholder=None):
         ob_space = env.observation_space
 
-        #X = observ_placeholder if observ_placeholder is not None else observation_placeholder(ob_space, batch_size=nbatch)
-        X = observ_placeholder if observ_placeholder is not None else observation_placeholder(ob_space)
+        X = observ_placeholder if observ_placeholder is not None else observation_placeholder(ob_space, batch_size=nbatch)
+        #X = observ_placeholder if observ_placeholder is not None else observation_placeholder(ob_space)
 
         extra_tensors = {}
 

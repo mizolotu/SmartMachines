@@ -95,7 +95,7 @@ def load_act(path):
 def learn(env,
           network,
           seed=None,
-          lr=5e-4,
+          lr=1e-3,
           total_timesteps=100000,
           nsteps=100,
           buffer_size=50000,
@@ -105,6 +105,7 @@ def learn(env,
           batch_size=32,
           print_freq=1,
           save_interval=10,
+          log_prefix='',
           checkpoint_path=None,
           learning_starts=10,
           gamma=1.0,
@@ -244,7 +245,7 @@ def learn(env,
     obs, flows = env.reset()
     reset = True
 
-    log_path = 'logs/dqn/{0}'.format(network)
+    log_path = os.path.abspath('logs/{0}/dqn/{1}'.format(log_prefix, network))
     tb_path = os.path.join(log_path, 'tb')
     checkpoint_path = os.path.join(log_path, 'checkpoints')
     format_strs = os.getenv('MARA_LOG_FORMAT', 'stdout,log,csv,tensorboard').split(',')
@@ -299,9 +300,9 @@ def learn(env,
             reset = False
             new_obs, rew, _, infos = env.step(env_actions)
             new_flows = [info['flows'] for info in infos]
-            n_normal = [info['n_normal_flows'] for info in infos]
-            n_attack = [info['n_attack_flows'] for info in infos]
-            n_infected = [info['n_infected'] for info in infos]
+            n_normal = [np.sum([v for v in info['stats']['n_normal'].values()]) for info in infos]
+            n_attack = [np.sum([v for v in info['stats']['n_attack'].values()]) for info in infos]
+            n_infected = [info['stats']['n_infected'] for info in infos]
 
             # Store transition in the replay buffer.
             for e in range(len(obs)):
@@ -329,6 +330,9 @@ def learn(env,
             if t > 0 and t % nsteps == 0:
                 done = True
                 obs, flows = env.reset()
+                episode_rewards[-1] /= nsteps
+                normal_flows[-1] /= nsteps
+                attack_flows[-1] /= nsteps
                 episode_rewards.append(0.0)
                 normal_flows.append(0.0)
                 attack_flows.append(0.0)

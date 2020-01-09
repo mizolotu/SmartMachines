@@ -1,6 +1,8 @@
 import numpy as np
 import tensorflow as tf
-from algorithms.bs_common.more_utils import conv, fc, conv_to_fc, batch_to_seq, seq_to_batch, lnlstm
+from algorithms.bs_common.more_utils import conv, fc, conv_to_fc, batch_to_seq, seq_to_batch
+from algorithms.bs_common.more_utils import lstm as lstm_
+from algorithms.bs_common.more_utils import lnlstm as lnlstm_
 from algorithms.bs_common.mpi_running_mean_std import RunningMeanStd
 
 mapping = {}
@@ -160,11 +162,34 @@ def lstm(nlstm=128, layer_norm=False):
     function that builds LSTM with a given input tensor / placeholder
     """
 
+    #def network_fn(X, nenv=1):
+    #    lstm_cell = tf.keras.layers.LSTMCell(units=nlstm)
+    #    rnn_output = tf.keras.layers.RNN(lstm_cell)(X)
+    #    h = tf.keras.layers.Flatten()(rnn_output)
+    #    return h
+
     def network_fn(X, nenv=1):
-        lstm_cell = tf.keras.layers.LSTMCell(units=nlstm)
-        rnn_output = tf.keras.layers.RNN(lstm_cell)(X)
-        h = tf.keras.layers.Flatten()(rnn_output)
-        return h
+        nbatch = X.shape[0]
+        nsteps = nbatch // nenv
+        h = tf.layers.flatten(X)
+
+        M = tf.placeholder(tf.float32, [nbatch]) #mask (done t-1)
+        S = tf.placeholder(tf.float32, [nenv, 2*nlstm]) #states
+
+        xs = batch_to_seq(h, nenv, nsteps)
+        #xs = [tf.squeeze(v, [1]) for v in tf.split(axis=1, num_or_size_splits=nsteps, value=X)]
+        ms = batch_to_seq(M, nenv, nsteps)
+        #ms = [tf.squeeze(v, [1]) for v in tf.split(axis=1, num_or_size_splits=nsteps, value=M)]
+
+        if layer_norm:
+            h5, snew = lnlstm_(xs, ms, S, scope='lnlstm', nh=nlstm)
+        else:
+            h5, snew = lstm_(xs, ms, S, scope='lstm', nh=nlstm)
+
+        h = seq_to_batch(h5)
+        initial_state = np.zeros(S.shape.as_list(), dtype=float)
+
+        return h, {'S':S, 'M':M, 'state':snew, 'initial_state':initial_state}
 
     return network_fn
 
@@ -184,9 +209,9 @@ def cnn_lstm(nlstm=128, layer_norm=False, conv_fn=nature_cnn, **conv_kwargs):
         ms = batch_to_seq(M, nenv, nsteps)
 
         if layer_norm:
-            h5, snew = lnlstm(xs, ms, S, scope='lnlstm', nh=nlstm)
+            h5, snew = lnlstm_(xs, ms, S, scope='lnlstm', nh=nlstm)
         else:
-            h5, snew = lstm(xs, ms, S, scope='lstm', nh=nlstm)
+            h5, snew = lstm_(xs, ms, S, scope='lstm', nh=nlstm)
 
         h = seq_to_batch(h5)
         initial_state = np.zeros(S.shape.as_list(), dtype=float)
