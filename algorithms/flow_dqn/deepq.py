@@ -359,6 +359,8 @@ def learn(env,
                 update_target()
 
             mean_100ep_reward = round(np.mean(episode_rewards[-11:-1]), 2)
+            min_100ep_reward = round(np.min(episode_rewards[-11:-1]), 2)
+            max_100ep_reward = round(np.max(episode_rewards[-11:-1]), 2)
             mean_100ep_normal_flows = round(np.mean(normal_flows[-11:-1]), 2)
             mean_100ep_attack_flows = round(np.mean(attack_flows[-11:-1]), 2)
             mean_100ep_infected_devices = round(np.mean(infected_devices[-11:-1]), 2)
@@ -369,6 +371,8 @@ def learn(env,
                 logger.record_tabular("normal flows", mean_100ep_normal_flows)
                 logger.record_tabular("attack flows", mean_100ep_attack_flows)
                 logger.record_tabular("reward", mean_100ep_reward)
+                logger.record_tabular("reward_min", min_100ep_reward)
+                logger.record_tabular("reward_max", max_100ep_reward)
                 logger.record_tabular("infected devices", mean_100ep_infected_devices)
                 logger.record_tabular("% time spent exploring", int(100 * exploration.value(t)))
                 logger.dump_tabular()
