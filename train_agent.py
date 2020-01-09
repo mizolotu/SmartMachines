@@ -1,4 +1,5 @@
-import sys, json
+import sys, json, os
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 from environments.aim_sensors import AimSensors
 from algorithms.bs_common.vec_env import SubprocVecEnv
