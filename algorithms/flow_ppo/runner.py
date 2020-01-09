@@ -35,7 +35,8 @@ class Runner(AbstractEnvRunner):
             i_max = np.argmax(obs_lens)
             obs_padded = np.zeros((self.nenv, *self.obs[i_max].shape))
             for i in range(self.nenv):
-                obs_padded[i, :self.obs[i].shape[0], :] = self.obs[i]
+                if len(self.obs[i]) > 0:
+                    obs_padded[i, :self.obs[i].shape[0], :] = self.obs[i]
             for i in range(self.obs[i_max].shape[0]):
                 actions_i, values_i, states_i, neglogpacs_i = self.model.step(obs_padded[:, i, :], S=self.states, M=self.dones)
                 for e in range(self.nenv):
