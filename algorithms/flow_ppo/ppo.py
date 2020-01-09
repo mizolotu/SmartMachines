@@ -29,7 +29,7 @@ def learn(network, env,
     max_grad_norm=0.5,
     gamma=0.99,
     lam=0.95,
-    log_interval=1,
+    log_interval=5,
     nminibatches=4,
     nbatch_train=100,
     noptepochs=4,
@@ -266,17 +266,27 @@ def learn(network, env,
             logger.logkv("stats/updates", update)
             logger.logkv("stats/timestamps", update * nenvs * nsteps)
             logger.logkv("stats/reward", safemean([epinfo['r'] for epinfo in epinfobuf]))
+            logger.logkv("stats/reward_min", np.min([epinfo['r'] for epinfo in epinfobuf]))
+            logger.logkv("stats/reward_max", np.max([epinfo['r'] for epinfo in epinfobuf]))
             logger.logkv("stats/infected_devices", safemean([epinfo['n_infected'] for epinfo in epinfobuf]))
             logger.logkv("stats/fps", fps)
             logger.logkv("stats/explained_variance", float(ev))
             logger.logkv('stats/time_elapsed', tnow - tfirststart)
             for (lossval, lossname) in zip(lossvals, model.loss_names):
                 logger.logkv('loss/' + lossname, lossval)
+            nnormal = [epinfo['normal_vs_attack']['normal_dns'] + epinfo['normal_vs_attack']['normal_device'] + epinfo['normal_vs_attack']['normal_admin']for epinfo in epinfobuf]
             logger.logkv("normal/dns", safemean([epinfo['normal_vs_attack']['normal_dns'] for epinfo in epinfobuf]))
             logger.logkv("normal/device", safemean([epinfo['normal_vs_attack']['normal_device'] for epinfo in epinfobuf]))
             logger.logkv("normal/admin", safemean([epinfo['normal_vs_attack']['normal_admin'] for epinfo in epinfobuf]))
+            nattack = [epinfo['normal_vs_attack']['attack_target'] + epinfo['normal_vs_attack']['attack_cc'] for epinfo in epinfobuf]
             logger.logkv("attack/target", safemean([epinfo['normal_vs_attack']['attack_target'] for epinfo in epinfobuf]))
             logger.logkv("attack/cc", safemean([epinfo['normal_vs_attack']['attack_cc'] for epinfo in epinfobuf]))
+            logger.logkv("stats/normal", safemean(nnormal))
+            logger.logkv("stats/normal_min", np.min(nnormal))
+            logger.logkv("stats/normal_max", np.max(nnormal))
+            logger.logkv("stats/attack", safemean(nattack))
+            logger.logkv("stats/attack_min", np.min(nattack))
+            logger.logkv("stats/attack_max", np.max(nattack))
             logger.dumpkvs()
         if save_interval and (update % save_interval == 0 or update == 1) and logger.get_dir() and is_mpi_root:
             checkdir = osp.join(logger.get_dir(), 'checkpoints')

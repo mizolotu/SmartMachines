@@ -330,9 +330,10 @@ def learn(env,
             if t > 0 and t % nsteps == 0:
                 done = True
                 obs, flows = env.reset()
-                episode_rewards.append(0.0)
+                episode_rewards[-1] /= nsteps
                 normal_flows[-1] /= nsteps
                 attack_flows[-1] /= nsteps
+                episode_rewards.append(0.0)
                 normal_flows.append(0.0)
                 attack_flows.append(0.0)
                 infected_devices.append(0.0)
