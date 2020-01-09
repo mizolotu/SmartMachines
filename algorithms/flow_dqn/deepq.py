@@ -231,7 +231,7 @@ def learn(env,
 
     # Create the schedule for exploration starting from 1.
 
-    exploration = LinearSchedule(schedule_timesteps=int(exploration_fraction * total_timesteps), initial_p=1.0, final_p=exploration_final_eps)
+    exploration = LinearSchedule(schedule_timesteps=int(exploration_fraction * total_timesteps // env.nremotes), initial_p=1.0, final_p=exploration_final_eps)
 
     # Initialize the parameters and copy them to the target network.
 
