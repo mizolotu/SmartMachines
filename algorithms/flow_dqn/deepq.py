@@ -272,7 +272,7 @@ def learn(env,
             load_variables(load_path)
             logger.log('Loaded model from {}'.format(load_path))
 
-        for t in range(total_timesteps):
+        for t in range(total_timesteps // env.nremotes):
             if callback is not None:
                 if callback(locals(), globals()):
                     break
@@ -358,13 +358,13 @@ def learn(env,
                 # Update target network periodically.
                 update_target()
 
-            mean_100ep_reward = round(np.mean(episode_rewards[-101:-1]), 2)
-            mean_100ep_normal_flows = round(np.mean(normal_flows[-101:-1]), 2)
-            mean_100ep_attack_flows = round(np.mean(attack_flows[-101:-1]), 2)
-            mean_100ep_infected_devices = round(np.mean(infected_devices[-101:-1]), 2)
+            mean_100ep_reward = round(np.mean(episode_rewards[-11:-1]), 2)
+            mean_100ep_normal_flows = round(np.mean(normal_flows[-11:-1]), 2)
+            mean_100ep_attack_flows = round(np.mean(attack_flows[-11:-1]), 2)
+            mean_100ep_infected_devices = round(np.mean(infected_devices[-11:-1]), 2)
             num_episodes = len(episode_rewards)
             if done and print_freq is not None and len(episode_rewards) % print_freq == 0:
-                logger.record_tabular("steps", t)
+                logger.record_tabular("steps", t * env.nremotes)
                 logger.record_tabular("episodes", num_episodes)
                 logger.record_tabular("normal flows", mean_100ep_normal_flows)
                 logger.record_tabular("attack flows", mean_100ep_attack_flows)
