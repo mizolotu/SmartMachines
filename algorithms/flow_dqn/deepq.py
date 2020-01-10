@@ -328,7 +328,8 @@ def learn(env,
             if t > 0 and t % nsteps == 0:
                 done = True
                 obs, flows = env.reset()
-                episode_rewards[-1] /= nsteps
+                for e in range(env.nremotes):
+                    episode_rewards[-e] /= nsteps
                 normal_flows[-1] /= nsteps
                 attack_flows[-1] /= nsteps
                 episode_rewards.extend([0.0 for e in range(env.nremotes)])
