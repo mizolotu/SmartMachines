@@ -237,7 +237,7 @@ def learn(env,
 
     U.initialize()
     update_target()
-    episode_rewards = [0.0]
+    episode_rewards = [0.0 for _ in range(env.nremotes)]
     normal_flows = [0.0]
     attack_flows = [0.0]
     infected_devices = [0.0]
@@ -319,11 +319,9 @@ def learn(env,
             obs = new_obs
             flows = new_flows
 
-            rew_flat = []
-            for r in rew:
-                rew_flat.extend(r)
-            if len(rew_flat) > 0:
-                episode_rewards[-1] += np.mean(rew_flat)
+            for e,r in enumerate(rew):
+                if len(rew[e]) > 0:
+                    episode_rewards[-1 - e] += np.mean(rew[e])
             normal_flows[-1] += np.mean(n_normal)
             attack_flows[-1] += np.mean(n_attack)
             infected_devices[-1] = np.mean(n_infected)
@@ -333,7 +331,7 @@ def learn(env,
                 episode_rewards[-1] /= nsteps
                 normal_flows[-1] /= nsteps
                 attack_flows[-1] /= nsteps
-                episode_rewards.append(0.0)
+                episode_rewards.extend([0.0 for e in range(env.nremotes)])
                 normal_flows.append(0.0)
                 attack_flows.append(0.0)
                 infected_devices.append(0.0)
@@ -358,9 +356,9 @@ def learn(env,
                 # Update target network periodically.
                 update_target()
 
-            mean_100ep_reward = round(np.mean(episode_rewards[-6:-1]), 2)
-            min_100ep_reward = round(np.min(episode_rewards[-6:-1]), 2) if len(episode_rewards) > 1 else np.nan
-            max_100ep_reward = round(np.max(episode_rewards[-6:-1]), 2) if len(episode_rewards) > 1 else np.nan
+            mean_100ep_reward = round(np.mean(episode_rewards[-11:-1]), 2)
+            min_100ep_reward = round(np.min(episode_rewards[-11:-1]), 2) if len(episode_rewards) > 1 else np.nan
+            max_100ep_reward = round(np.max(episode_rewards[-11:-1]), 2) if len(episode_rewards) > 1 else np.nan
             mean_100ep_normal_flows = round(np.mean(normal_flows[-6:-1]), 2)
             mean_100ep_attack_flows = round(np.mean(attack_flows[-6:-1]), 2)
             mean_100ep_infected_devices = round(np.mean(infected_devices[-6:-1]), 2)
