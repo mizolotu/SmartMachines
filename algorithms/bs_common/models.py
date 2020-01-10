@@ -107,10 +107,9 @@ def mlp(num_layers=2, num_hidden=64, activation=tf.tanh, layer_norm=False):
 @register("cnn")
 def cnn(nh=64):
     def network_fn(X):
-        conv1 = tf.keras.layers.Conv1D(filters=nh, kernel_size=2, strides=1, activation='relu')(X)
+        conv1 = tf.keras.layers.Conv1D(filters=nh, kernel_size=2, strides=2, activation='relu')(X)
         conv2 = tf.keras.layers.Conv1D(filters=nh, kernel_size=2, strides=1, activation='relu')(conv1)
-        conv3 = tf.keras.layers.Conv1D(filters=nh, kernel_size=2, strides=1, activation='relu')(conv2)
-        h = tf.keras.layers.Flatten()(conv3)
+        h = tf.keras.layers.Flatten()(conv2)
         h = fc(h, 'mlp_fc0', nh=nh, init_scale=np.sqrt(2))
         return h
     return network_fn
