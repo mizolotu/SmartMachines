@@ -1,6 +1,6 @@
 {
   "network": "mlp",
-  "nsteps": 30,
+  "nsteps": 15,
   "total_timesteps": 30000,
   "exploration_fraction": 0.5,
   "save_interval": 10,

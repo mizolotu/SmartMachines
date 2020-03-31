@@ -71,9 +71,8 @@ def build_impala_cnn(unscaled_images, depths=[16,32,32], **conv_kwargs):
 
     return out
 
-
 @register("mlp")
-def mlp(num_layers=2, num_hidden=64, activation=tf.tanh, layer_norm=False):
+def mlp(num_layers=2, num_hidden=512, activation=tf.tanh, layer_norm=False):
     """
     Stack of fully-connected layers to be used in a policy / q-function approximator
 
@@ -98,11 +97,8 @@ def mlp(num_layers=2, num_hidden=64, activation=tf.tanh, layer_norm=False):
             if layer_norm:
                 h = tf.contrib.layers.layer_norm(h, center=True, scale=True)
             h = activation(h)
-
         return h
-
     return network_fn
-
 
 @register("cnn")
 def cnn(nh=64):
