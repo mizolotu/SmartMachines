@@ -1,7 +1,7 @@
 {
   "network": "mlp",
   "nsteps": 15,
-  "total_timesteps": 60000,
+  "nupdates": 10000,
   "save_interval": 10,
   "load_path": "ppo/mlp/checkpoints/last"
 }
