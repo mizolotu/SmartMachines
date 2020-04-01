@@ -139,7 +139,7 @@ class Model(object):
         advs = returns - values
 
         # Normalize the advantages HELL NO
-        #advs = (advs - advs.mean()) / (advs.std() + 1e-8)
+        advs = (advs - advs.mean()) / (advs.std() + 1e-8)
 
         td_map = {
             self.train_model.X : obs,
