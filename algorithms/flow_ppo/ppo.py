@@ -20,18 +20,16 @@ def constfn(val):
 
 def learn(network, env,
     nsteps=100,
-    total_timesteps=1e6,
-    eval_env=None,
+    nupdates=1e6,
     seed=None,
     ent_coef=0.0,
-    lr=lambda f: 1e-3 * f,
+    lr=2e-4,
     vf_coef=0.5,
     max_grad_norm=0.5,
     gamma=0.99,
     lam=0.95,
     log_interval=1,
-    nminibatches=4,
-    nbatch_train=100,
+    nbatch_train=150,
     noptepochs=4,
     cliprange=0.2,
     save_interval=0,
@@ -104,7 +102,6 @@ def learn(network, env,
     else: assert callable(lr)
     if isinstance(cliprange, float): cliprange = constfn(cliprange)
     else: assert callable(cliprange)
-    total_timesteps = int(total_timesteps)
 
     policy = build_policy(env, network, **network_kwargs)
 
@@ -153,7 +150,6 @@ def learn(network, env,
     format_strs = os.getenv('MARA_LOG_FORMAT', 'stdout,log,csv,tensorboard').split(',')
     logger.configure(os.path.abspath('logs/{0}/ppo/{1}'.format(log_prefix, network)), format_strs)
 
-    nupdates = total_timesteps # //nbatch
     for update in range(1, nupdates+1):
 
         #assert nbatch % nminibatches == 0
