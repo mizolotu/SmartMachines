@@ -172,7 +172,7 @@ def learn(network, env,
 
         obs, returns, masks, actions, values, neglogpacs, states, epinfos, batchidx = runner.run() #pylint: disable=E0632
 
-        nbatch = len(batchidx) / 2
+        nbatch = len(batchidx) // 2
 
         if update % log_interval == 0 and is_mpi_root: logger.info('Done.')
         epinfobuf.extend(epinfos)
