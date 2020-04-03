@@ -145,8 +145,12 @@ class Runner(AbstractEnvRunner):
             values = []
             neglopacs = []
             scores = []
+            batch_idx = [0]
             for i in range(n_flows):
                 count += len(obs_per_flow[i])
+                batch_idx.append(count)
+                if i < n_flows - 1:
+                    batch_idx.append(count + 1)
                 obs.extend(obs_per_flow[i])
                 states.extend(states_per_flow[i])
                 actions.extend(actions_per_flow[i])
@@ -187,7 +191,7 @@ class Runner(AbstractEnvRunner):
         mb_values = np.vstack(values_b)
         mb_neglogpacs = np.vstack(neglopacs_b)
 
-        return (mb_obs, *map(sf01, (mb_returns, mb_masks, mb_actions, mb_values, mb_neglogpacs)), mb_states, epinfos)
+        return (mb_obs, *map(sf01, (mb_returns, mb_masks, mb_actions, mb_values, mb_neglogpacs)), mb_states, epinfos, batch_idx)
 
 # obs, returns, masks, actions, values, neglogpacs, states = runner.run()
 def sf01(arr):

@@ -125,7 +125,7 @@ def learn(network, env,
         ob_space=ob_space,
         ac_space=ac_space,
         nbatch_act=nenvs,
-        nbatch_train=nbatch_train,
+        nbatch_train=None,
         nsteps=nbatch_train,
         ent_coef=ent_coef,
         vf_coef=vf_coef,
@@ -139,7 +139,7 @@ def learn(network, env,
         print('Loaded model from {0}'.format(load_path))
     # Instantiate the runner object
     runner = Runner(env=env, model=model, nsteps=nsteps, gamma=gamma, lam=lam)
-    epinfobuf = deque(maxlen=log_interval*nenvs)
+    epinfobuf = deque(maxlen=10*nenvs)
 
     if init_fn is not None:
         init_fn()
@@ -170,9 +170,9 @@ def learn(network, env,
 
         # Get minibatch
 
-        obs, returns, masks, actions, values, neglogpacs, states, epinfos = runner.run() #pylint: disable=E0632
+        obs, returns, masks, actions, values, neglogpacs, states, epinfos, batchidx = runner.run() #pylint: disable=E0632
 
-        nbatch = obs.shape[0]
+        nbatch = len(batchidx) / 2
 
         if update % log_interval == 0 and is_mpi_root: logger.info('Done.')
         epinfobuf.extend(epinfos)
@@ -185,21 +185,14 @@ def learn(network, env,
             # Index of each element of batch_size
             # Create the indices array
 
-            inds = np.arange(nbatch)
             for _ in range(noptepochs):
 
                 # Randomize the indexes
 
-                np.random.shuffle(inds)
-
-                # 0 to batch_size with batch_train_size step
-
-                for start in range(0, nbatch, nbatch_train):
-                    end = start + nbatch_train
-                    mbinds = inds[start:end]
-                    if len(mbinds) < nbatch_train:
-                        mbinds_ = np.random.choice(inds, nbatch_train - len(mbinds))
-                        mbinds = np.hstack([mbinds, mbinds_])
+                for i in range(nbatch):
+                    start = batchidx[2*i]
+                    end = batchidx[2*i+1]
+                    mbinds = np.arange(start, end)
                     slices = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
                     mblossvals.append(model.train(lrnow, cliprangenow, *slices))
 
