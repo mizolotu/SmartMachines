@@ -20,7 +20,7 @@ def moving_average(x, step=1, window=10):
         seq.append(np.mean(x[idx, :], axis=0))
     return np.vstack(seq)
 
-def prepare_traces(data, trace_data, n=30):
+def prepare_traces(data, trace_data, n=1000):
     dx = data[2, 0] - data[1,0]
     if 'baseline' in trace_data['name'].lower():
         ma = baseline(data[:, 1:])
@@ -53,8 +53,8 @@ def prepare_traces(data, trace_data, n=30):
 if __name__ == '__main__':
 
     #attack = 'botnet_attack'
-    attack = 'exfiltration_attack'
-    #attack = 'slowloris_attack'
+    #attack = 'exfiltration_attack'
+    attack = 'slowloris_attack'
     fname = 'logs/{0}/{1}/mlp/progress.csv'
     algs = ['dqn', 'ppo']
     figname = 'figs/{0}.pdf'.format(attack)

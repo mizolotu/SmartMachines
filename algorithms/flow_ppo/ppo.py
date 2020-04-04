@@ -180,6 +180,9 @@ def learn(network, env,
         # Here what we're going to do is for each minibatch calculate the loss and append it.
 
         mblossvals = []
+        print(batchidx)
+        print(nbatch)
+
         if states is None: # nonrecurrent version
 
             # Index of each element of batch_size
