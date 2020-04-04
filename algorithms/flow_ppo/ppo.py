@@ -172,7 +172,7 @@ def learn(network, env,
 
         obs, returns, masks, actions, values, neglogpacs, states, epinfos, batchidx = runner.run() #pylint: disable=E0632
 
-        nbatch = len(batchidx) // 2
+        nbatch = len(batchidx) // 2 // 10
 
         if update % log_interval == 0 and is_mpi_root: logger.info('Done.')
         epinfobuf.extend(epinfos)
@@ -194,7 +194,7 @@ def learn(network, env,
 
                 for i in range(nbatch):
                     start = batchidx[2*i]
-                    end = batchidx[2*i+1]
+                    end = batchidx[np.minimum(2*i*10+1, len(batchidx) - 1)]
                     mbinds = np.arange(start, end)
                     slices = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
                     mblossvals.append(model.train(lrnow, cliprangenow, *slices))
