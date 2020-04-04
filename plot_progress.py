@@ -20,12 +20,13 @@ def moving_average(x, step=1, window=10):
         seq.append(np.mean(x[idx, :], axis=0))
     return np.vstack(seq)
 
-def prepare_traces(data, trace_data, n=1000):
+def prepare_traces(data, trace_data, n=320):
     dx = data[2, 0] - data[1,0]
     if 'baseline' in trace_data['name'].lower():
         ma = baseline(data[:, 1:])
     else:
-        ma = moving_average(data[:, 1:])
+        ma = data[:, 1:] #moving_average(data[:, 1:])
+    print(ma)
     x = np.arange(n) * dx
     x_rev = x[::-1]
     y_upper = ma[:n, 2]
@@ -92,6 +93,7 @@ if __name__ == '__main__':
                 data[:, i] = p.values[:, keys.index(colname[0])]
             elif colname[1] in keys:
                 data[:, i] = p.values[:, keys.index(colname[1])]
+        print(data)
         main_trace, lu_trace = prepare_traces(data, method)
         main_traces.append(main_trace)
         lu_traces.append(lu_trace)

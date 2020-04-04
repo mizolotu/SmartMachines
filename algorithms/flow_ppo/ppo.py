@@ -23,7 +23,7 @@ def learn(network, env,
     nupdates=1e6,
     seed=None,
     ent_coef=0.0,
-    lr=2e-4,
+    lr=1e-4,
     vf_coef=0.5,
     max_grad_norm=0.5,
     gamma=0.99,
@@ -139,7 +139,7 @@ def learn(network, env,
         print('Loaded model from {0}'.format(load_path))
     # Instantiate the runner object
     runner = Runner(env=env, model=model, nsteps=nsteps, gamma=gamma, lam=lam)
-    epinfobuf = deque(maxlen=10*nenvs)
+    epinfobuf = deque(maxlen=log_interval*nenvs)
 
     if init_fn is not None:
         init_fn()
