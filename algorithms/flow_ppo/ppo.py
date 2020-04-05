@@ -180,8 +180,6 @@ def learn(network, env,
         # Here what we're going to do is for each minibatch calculate the loss and append it.
 
         mblossvals = []
-        print(batchidx)
-        print(nbatch)
 
         if states is None: # nonrecurrent version
 
@@ -192,12 +190,16 @@ def learn(network, env,
 
                 # Randomize the indexes
 
-                for i in range(nbatch):
-                    start = batchidx[2*i]
-                    end = batchidx[np.minimum(2*i*10+1, len(batchidx) - 1)]
-                    mbinds = np.arange(start, end)
-                    slices = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
-                    mblossvals.append(model.train(lrnow, cliprangenow, *slices))
+                mbinds = np.arange(obs.shape[0])
+                slices = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
+                mblossvals.append(model.train(lrnow, cliprangenow, *slices))
+
+                #for i in range(nbatch):
+                #    start = batchidx[2*i]
+                #    end = batchidx[np.minimum(2*i*10+1, len(batchidx) - 1)]
+                #    mbinds = np.arange(start, end)
+                #    slices = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
+                #    mblossvals.append(model.train(lrnow, cliprangenow, *slices))
 
         else: # recurrent version
 
@@ -256,10 +258,10 @@ def learn(network, env,
         if update % log_interval == 0 or update == 1:
             ev = explained_variance(values, returns)
             logger.logkv("stats/updates", update)
-            logger.logkv("stats/timestamps", update * nenvs * nsteps)
-            logger.logkv("stats/reward", safemean([epinfo['r'] for epinfo in epinfobuf]))
-            logger.logkv("stats/reward_min", np.min([epinfo['r'] for epinfo in epinfobuf]))
-            logger.logkv("stats/reward_max", np.max([epinfo['r'] for epinfo in epinfobuf]))
+            logger.logkv("steps", update * nenvs * nsteps)
+            logger.logkv("reward", safemean([epinfo['r'] for epinfo in epinfobuf]))
+            logger.logkv("reward_min", np.min([epinfo['r'] for epinfo in epinfobuf]))
+            logger.logkv("reward_max", np.max([epinfo['r'] for epinfo in epinfobuf]))
             logger.logkv("stats/infected_devices", safemean([epinfo['n_infected'] for epinfo in epinfobuf]))
             logger.logkv("stats/fps", fps)
             logger.logkv("stats/explained_variance", float(ev))

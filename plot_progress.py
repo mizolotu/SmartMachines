@@ -3,7 +3,9 @@ import pandas
 import plotly as pl
 import plotly.io as pio
 import plotly.graph_objs as go
+
 from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
+from matplotlib import pyplot as pp
 
 def baseline(x, nsteps=10):
     n = x.shape[0]
@@ -20,19 +22,21 @@ def moving_average(x, step=1, window=10):
         seq.append(np.mean(x[idx, :], axis=0))
     return np.vstack(seq)
 
-def prepare_traces(data, trace_data, n=320):
+def prepare_traces(data, trace_data, n=None):
     dx = data[2, 0] - data[1,0]
     if 'baseline' in trace_data['name'].lower():
         ma = baseline(data[:, 1:])
     else:
-        ma = data[:, 1:] #moving_average(data[:, 1:])
-    print(ma)
-    x = np.arange(n) * dx
+        ma = moving_average(data[:, 1:])
+    if n is None:
+        n = data.shape[0]
+    x = np.arange(n)
+    x = x.tolist()
     x_rev = x[::-1]
-    y_upper = ma[:n, 2]
-    y_lower = ma[:n, 1]
+    y_upper = ma[:n, 2].tolist()
+    y_lower = ma[:n, 1].tolist()
     y_lower = y_lower[::-1]
-    y_avg = ma[:n, 0]
+    y_avg = ma[:n, 0].tolist()
     lu_trace = go.Scatter(
         x=x+x_rev,
         y=y_upper+y_lower,
@@ -53,9 +57,9 @@ def prepare_traces(data, trace_data, n=320):
 
 if __name__ == '__main__':
 
-    #attack = 'botnet_attack'
+    attack = 'botnet_attack'
     #attack = 'exfiltration_attack'
-    attack = 'slowloris_attack'
+    #attack = 'slowloris_attack'
     fname = 'logs/{0}/{1}/mlp/progress.csv'
     algs = ['dqn', 'ppo']
     figname = 'figs/{0}.pdf'.format(attack)
@@ -81,7 +85,7 @@ if __name__ == '__main__':
         }
     ]
 
-    colnames = [['steps', 'stats/timestamps'], ['reward', 'stats/reward'], ['reward_min', 'stats/reward_min'], ['reward_max', 'stats/reward_max'], ['steps', 'stats/timesteps']]
+    colnames = ['steps', 'reward', 'reward_min', 'reward_max']
     main_traces = []
     lu_traces = []
     for method in methods[2:]:
@@ -89,11 +93,7 @@ if __name__ == '__main__':
         keys = [item for item in p.keys()]
         data = np.zeros((p.values.shape[0], len(colnames)))
         for i,colname in enumerate(colnames):
-            if colname[0] in keys:
-                data[:, i] = p.values[:, keys.index(colname[0])]
-            elif colname[1] in keys:
-                data[:, i] = p.values[:, keys.index(colname[1])]
-        print(data)
+            data[:, i] = p.values[:, keys.index(colname)]
         main_trace, lu_trace = prepare_traces(data, method)
         main_traces.append(main_trace)
         lu_traces.append(lu_trace)
@@ -101,25 +101,20 @@ if __name__ == '__main__':
     data = lu_traces + main_traces
 
     layout = go.Layout(
-        # paper_bgcolor='rgb(255,255,255)',
-        # plot_bgcolor='rgb(229,229,229)',
+        template='plotly_white',
         xaxis=dict(
             title='False Positive Rate',
-            # gridcolor='rgb(255,255,255)',
             showgrid=True,
             showline=False,
             showticklabels=True,
-            # tickcolor='rgb(127,127,127)',
             ticks='outside',
             zeroline=False
         ),
         yaxis=dict(
             title='True Positive Rate',
-            # gridcolor='rgb(255,255,255)',
             showgrid=True,
             showline=False,
             showticklabels=True,
-            # tickcolor='rgb(127,127,127)',
             ticks='outside',
             zeroline=False
         ),
