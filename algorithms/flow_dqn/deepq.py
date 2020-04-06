@@ -96,7 +96,7 @@ def learn(env,
           network,
           seed=None,
           lr=1e-4,
-          total_timesteps=100000,
+          nupdates=10000,
           nsteps=100,
           buffer_size=50000,
           exploration_fraction=0.0,
@@ -223,7 +223,7 @@ def learn(env,
     if prioritized_replay:
         replay_buffer = PrioritizedReplayBuffer(buffer_size, alpha=prioritized_replay_alpha)
         if prioritized_replay_beta_iters is None:
-            prioritized_replay_beta_iters = total_timesteps
+            prioritized_replay_beta_iters = nsteps*nupdates
         beta_schedule = LinearSchedule(prioritized_replay_beta_iters, initial_p=prioritized_replay_beta0, final_p=1.0)
     else:
         replay_buffer = ReplayBuffer(buffer_size)
@@ -231,7 +231,7 @@ def learn(env,
 
     # Create the schedule for exploration starting from 1.
 
-    exploration = LinearSchedule(schedule_timesteps=int(exploration_fraction * total_timesteps // env.nremotes), initial_p=1.0, final_p=exploration_final_eps)
+    exploration = LinearSchedule(schedule_timesteps=int(exploration_fraction * nupdates * nsteps // env.nremotes), initial_p=1.0, final_p=exploration_final_eps)
 
     # Initialize the parameters and copy them to the target network.
 
@@ -272,7 +272,7 @@ def learn(env,
             load_variables(load_path)
             logger.log('Loaded model from {}'.format(load_path))
 
-        for t in range(total_timesteps // env.nremotes):
+        for t in range(nupdates * nsteps // env.nremotes):
             if callback is not None:
                 if callback(locals(), globals()):
                     break
