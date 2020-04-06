@@ -360,12 +360,12 @@ def learn(env,
                 # Update target network periodically.
                 update_target()
 
-            mean_100ep_reward = round(np.mean(episode_rewards[-11:-1]), 2)
-            min_100ep_reward = round(np.min(episode_rewards[-11:-1]), 2) if len(episode_rewards) > 1 else np.nan
-            max_100ep_reward = round(np.max(episode_rewards[-11:-1]), 2) if len(episode_rewards) > 1 else np.nan
-            mean_100ep_normal_flows = round(np.mean(normal_flows[-6:-1]), 2)
-            mean_100ep_attack_flows = round(np.mean(attack_flows[-6:-1]), 2)
-            mean_100ep_infected_devices = round(np.mean(infected_devices[-6:-1]), 2)
+            mean_100ep_reward = round(np.mean(episode_rewards[-env.nremotes-env.nremotes:-env.nremotes]), 2)
+            min_100ep_reward = round(np.min(episode_rewards[-env.nremotes-env.nremotes:-env.nremotes]), 2) if len(episode_rewards) > 1 else np.nan
+            max_100ep_reward = round(np.max(episode_rewards[-env.nremotes-env.nremotes:-env.nremotes]), 2) if len(episode_rewards) > 1 else np.nan
+            mean_100ep_normal_flows = round(np.mean(normal_flows[-2:-1]), 2)
+            mean_100ep_attack_flows = round(np.mean(attack_flows[-2:-1]), 2)
+            mean_100ep_infected_devices = round(np.mean(infected_devices[-2:-1]), 2)
             num_episodes = len(episode_rewards)
             if done and print_freq is not None and len(episode_rewards) % print_freq == 0:
                 logger.record_tabular("steps", t * env.nremotes)
