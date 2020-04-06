@@ -95,14 +95,14 @@ def load_act(path):
 def learn(env,
           network,
           seed=None,
-          lr=1e-3,
+          lr=1e-4,
           total_timesteps=100000,
           nsteps=100,
           buffer_size=50000,
           exploration_fraction=0.0,
           exploration_final_eps=0.0,
           train_freq=1,
-          batch_size=32,
+          batch_size=512,
           print_freq=1,
           save_interval=10,
           log_prefix='',
@@ -304,7 +304,8 @@ def learn(env,
             n_attack = [np.sum([v for v in info['stats']['n_attack'].values()]) for info in infos]
             n_infected = [info['stats']['n_infected'] for info in infos]
 
-            # Store transition in the replay buffer.
+            # Store transition in the replay buffer
+
             for e in range(len(obs)):
                 for i in range(len(flows[e])):
                     if flows[e][i] in new_flows[e]:

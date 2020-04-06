@@ -22,7 +22,7 @@ def moving_average(x, step=1, window=10):
         seq.append(np.mean(x[idx, :], axis=0))
     return np.vstack(seq)
 
-def prepare_traces(data, trace_data, n=None):
+def prepare_traces(data, trace_data, n=300):
     dx = data[2, 0] - data[1,0]
     if 'baseline' in trace_data['name'].lower():
         ma = baseline(data[:, 1:])
@@ -30,7 +30,7 @@ def prepare_traces(data, trace_data, n=None):
         ma = moving_average(data[:, 1:])
     if n is None:
         n = data.shape[0]
-    x = np.arange(n)
+    x = np.arange(n) * 100
     x = x.tolist()
     x_rev = x[::-1]
     y_upper = ma[:n, 2].tolist()
@@ -73,14 +73,14 @@ if __name__ == '__main__':
         },
         {
             'name': 'DQN',
-            'color': 'rgb(253,106,2)',
-            'alpha_color': 'rgba(253,106,2,0.2)',
+            'color': 'rgb(237,2,11)',
+            'alpha_color': 'rgba(237,2,11,0.2)',
             'subdir': 'dqn'
         },
         {
             'name': 'PPO',
-            'color': 'rgb(0,176,246)',
-            'alpha_color': 'rgba(0,176,246,0.2)',
+            'color': 'rgb(64,120,211)',
+            'alpha_color': 'rgba(64,120,211,0.2)',
             'subdir': 'ppo'
         }
     ]
@@ -88,7 +88,7 @@ if __name__ == '__main__':
     colnames = ['steps', 'reward', 'reward_min', 'reward_max']
     main_traces = []
     lu_traces = []
-    for method in methods[2:]:
+    for method in methods[0:1] + methods[2:]:
         p = pandas.read_csv(fname.format(attack, method['subdir']), delimiter=',', dtype=float)
         keys = [item for item in p.keys()]
         data = np.zeros((p.values.shape[0], len(colnames)))
@@ -103,7 +103,7 @@ if __name__ == '__main__':
     layout = go.Layout(
         template='plotly_white',
         xaxis=dict(
-            title='False Positive Rate',
+            title='Steps',
             showgrid=True,
             showline=False,
             showticklabels=True,
@@ -111,7 +111,7 @@ if __name__ == '__main__':
             zeroline=False
         ),
         yaxis=dict(
-            title='True Positive Rate',
+            title='Reward',
             showgrid=True,
             showline=False,
             showticklabels=True,
