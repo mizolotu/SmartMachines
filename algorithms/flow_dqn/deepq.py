@@ -103,7 +103,7 @@ def learn(env,
           exploration_final_eps=0.0,
           train_freq=1,
           batch_size=512,
-          print_freq=1,
+          log_interval=4,
           save_interval=10,
           log_prefix='',
           checkpoint_path=None,
@@ -360,14 +360,14 @@ def learn(env,
                 # Update target network periodically.
                 update_target()
 
-            mean_100ep_reward = round(np.mean(episode_rewards[-env.nremotes*4-env.nremotes:-env.nremotes]), 2)
-            min_100ep_reward = round(np.min(episode_rewards[-env.nremotes*4-env.nremotes:-env.nremotes]), 2) if len(episode_rewards) > 1 else np.nan
-            max_100ep_reward = round(np.max(episode_rewards[-env.nremotes*4-env.nremotes:-env.nremotes]), 2) if len(episode_rewards) > 1 else np.nan
+            mean_100ep_reward = round(np.mean(episode_rewards[-env.nremotes*log_interval-env.nremotes:-env.nremotes]), 2)
+            min_100ep_reward = round(np.min(episode_rewards[-env.nremotes*log_interval-env.nremotes:-env.nremotes]), 2) if len(episode_rewards) > 1 else np.nan
+            max_100ep_reward = round(np.max(episode_rewards[-env.nremotes*log_interval-env.nremotes:-env.nremotes]), 2) if len(episode_rewards) > 1 else np.nan
             mean_100ep_normal_flows = round(np.mean(normal_flows[-2:-1]), 2)
             mean_100ep_attack_flows = round(np.mean(attack_flows[-2:-1]), 2)
             mean_100ep_infected_devices = round(np.mean(infected_devices[-2:-1]), 2)
             num_episodes = len(episode_rewards)
-            if done and print_freq is not None and len(episode_rewards) % print_freq == 0:
+            if done and log_interval is not None and len(episode_rewards) % (log_interval * env.nremotes) == 0:
                 logger.record_tabular("steps", t * env.nremotes)
                 logger.record_tabular("episodes", num_episodes)
                 logger.record_tabular("normal flows", mean_100ep_normal_flows)
@@ -381,13 +381,13 @@ def learn(env,
 
             if (save_interval is not None and t > (learning_starts * nsteps) and t % (save_interval * nsteps) == 0):
                 if saved_mean_reward is None or mean_100ep_reward > saved_mean_reward:
-                    if print_freq is not None:
+                    if log_interval is not None:
                         logger.log("Saving model due to mean reward increase: {} -> {}".format(saved_mean_reward, mean_100ep_reward))
                     save_variables(model_file)
                     model_saved = True
                     saved_mean_reward = mean_100ep_reward
         if model_saved:
-            if print_freq is not None:
+            if log_interval is not None:
                 logger.log("Restored model with mean reward: {}".format(saved_mean_reward))
             load_variables(model_file)
 

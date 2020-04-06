@@ -57,8 +57,8 @@ def prepare_traces(data, trace_data, n=300):
 
 if __name__ == '__main__':
 
-    attack = 'botnet_attack'
-    #attack = 'exfiltration_attack'
+    #attack = 'botnet_attack'
+    attack = 'exfiltration_attack'
     #attack = 'slowloris_attack'
     fname = 'logs/{0}/{1}/mlp/progress.csv'
     algs = ['dqn', 'ppo']
@@ -88,7 +88,7 @@ if __name__ == '__main__':
     colnames = ['steps', 'reward', 'reward_min', 'reward_max']
     main_traces = []
     lu_traces = []
-    for method in methods[0:1] + methods[2:]:
+    for method in methods:
         p = pandas.read_csv(fname.format(attack, method['subdir']), delimiter=',', dtype=float)
         keys = [item for item in p.keys()]
         data = np.zeros((p.values.shape[0], len(colnames)))
