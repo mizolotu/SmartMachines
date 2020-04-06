@@ -323,6 +323,7 @@ def learn(env,
             for e,r in enumerate(rew):
                 if len(rew[e]) > 0:
                     episode_rewards[-1 - e] += np.mean(rew[e])
+
             normal_flows[-1] += np.mean(n_normal)
             attack_flows[-1] += np.mean(n_attack)
             infected_devices[-1] = np.mean(n_infected)
@@ -330,7 +331,7 @@ def learn(env,
                 done = True
                 obs, flows = env.reset()
                 for e in range(env.nremotes):
-                    episode_rewards[-e] /= nsteps
+                    episode_rewards[-1 - e] /= nsteps
                 print(episode_rewards)
                 normal_flows[-1] /= nsteps
                 attack_flows[-1] /= nsteps
