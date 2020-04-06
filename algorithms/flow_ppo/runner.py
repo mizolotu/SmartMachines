@@ -99,7 +99,7 @@ class Runner(AbstractEnvRunner):
             neglopacs_per_flow = [[] for _ in range(n_flows)]
             indexes = []
             for i, flow in enumerate(all_flows):
-                for j in range(len(mb_obs)):
+                for j in range(len(mb_obs)): # len(mb_obs) is the number of steps
                     flows = mb_flows[j][e]
                     if type(flows).__name__ != 'list':
                         flows = flows.tolist()

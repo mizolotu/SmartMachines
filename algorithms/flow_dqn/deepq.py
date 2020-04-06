@@ -98,10 +98,10 @@ def learn(env,
           lr=1e-4,
           nupdates=10000,
           nsteps=100,
-          buffer_size=50000,
+          buffer_size=10000,
           exploration_fraction=0.0,
           exploration_final_eps=0.0,
-          train_freq=1,
+          train_freq=None,
           batch_size=512,
           log_interval=4,
           save_interval=10,
@@ -258,6 +258,9 @@ def learn(env,
         except Exception as e:
             print(e)
 
+    if train_freq is None:
+        train_freq = nsteps
+
     with tempfile.TemporaryDirectory() as td:
         td = checkpoint_path or td
 
@@ -366,8 +369,8 @@ def learn(env,
             mean_100ep_normal_flows = round(np.mean(normal_flows[-2:-1]), 2)
             mean_100ep_attack_flows = round(np.mean(attack_flows[-2:-1]), 2)
             mean_100ep_infected_devices = round(np.mean(infected_devices[-2:-1]), 2)
-            num_episodes = len(episode_rewards)
-            if done and log_interval is not None and len(episode_rewards) % (log_interval * env.nremotes) == 0:
+            num_episodes = len(episode_rewards) // env.nremotes - env.nremotes
+            if done and log_interval is not None and num_episodes % log_interval == 0:
                 logger.record_tabular("steps", t * env.nremotes)
                 logger.record_tabular("episodes", num_episodes)
                 logger.record_tabular("normal flows", mean_100ep_normal_flows)

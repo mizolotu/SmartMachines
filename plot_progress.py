@@ -22,15 +22,15 @@ def moving_average(x, step=1, window=10):
         seq.append(np.mean(x[idx, :], axis=0))
     return np.vstack(seq)
 
-def prepare_traces(data, trace_data, n=300):
+def prepare_traces(data, trace_data, n=149):
     dx = data[2, 0] - data[1,0]
     if 'baseline' in trace_data['name'].lower():
-        ma = baseline(data[:, 1:])
+        ma = moving_average(baseline(data[:, 1:]))
     else:
         ma = moving_average(data[:, 1:])
     if n is None:
         n = data.shape[0]
-    x = np.arange(n) * 100
+    x = np.arange(n) #* 100
     x = x.tolist()
     x_rev = x[::-1]
     y_upper = ma[:n, 2].tolist()
@@ -57,12 +57,9 @@ def prepare_traces(data, trace_data, n=300):
 
 if __name__ == '__main__':
 
-    #attack = 'botnet_attack'
-    attack = 'exfiltration_attack'
-    #attack = 'slowloris_attack'
-    fname = 'logs/{0}/{1}/mlp/progress.csv'
+    attacks = ['botnet_attack', 'exfiltration_attack', 'slowloris_attack']
     algs = ['dqn', 'ppo']
-    figname = 'figs/{0}.pdf'.format(attack)
+    colnames = ['steps', 'reward', 'reward_min', 'reward_max']
 
     methods = [
         {
@@ -85,21 +82,6 @@ if __name__ == '__main__':
         }
     ]
 
-    colnames = ['steps', 'reward', 'reward_min', 'reward_max']
-    main_traces = []
-    lu_traces = []
-    for method in methods:
-        p = pandas.read_csv(fname.format(attack, method['subdir']), delimiter=',', dtype=float)
-        keys = [item for item in p.keys()]
-        data = np.zeros((p.values.shape[0], len(colnames)))
-        for i,colname in enumerate(colnames):
-            data[:, i] = p.values[:, keys.index(colname)]
-        main_trace, lu_trace = prepare_traces(data, method)
-        main_traces.append(main_trace)
-        lu_traces.append(lu_trace)
-
-    data = lu_traces + main_traces
-
     layout = go.Layout(
         template='plotly_white',
         xaxis=dict(
@@ -119,5 +101,22 @@ if __name__ == '__main__':
             zeroline=False
         ),
     )
-    fig = go.Figure(data=data, layout=layout)
-    pio.write_image(fig, figname)
+
+    for attack in attacks:
+        fname = 'logs/{0}/{1}/mlp/progress.csv'
+        figname = 'figs/{0}.pdf'.format(attack)
+        main_traces = []
+        lu_traces = []
+        for method in methods:
+            p = pandas.read_csv(fname.format(attack, method['subdir']), delimiter=',', dtype=float)
+            keys = [item for item in p.keys()]
+            data = np.zeros((p.values.shape[0], len(colnames)))
+            for i,colname in enumerate(colnames):
+                data[:, i] = p.values[:, keys.index(colname)]
+            print(attack, method['name'],data.shape)
+            main_trace, lu_trace = prepare_traces(data, method)
+            main_traces.append(main_trace)
+            lu_traces.append(lu_trace)
+        data = lu_traces + main_traces
+        fig = go.Figure(data=data, layout=layout)
+        pio.write_image(fig, figname)
