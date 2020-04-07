@@ -22,7 +22,7 @@ def moving_average(x, step=1, window=10):
         seq.append(np.mean(x[idx, :], axis=0))
     return np.vstack(seq)
 
-def prepare_traces(data, trace_data, n=149):
+def prepare_traces(data, trace_data, n=712//4):
     dx = data[2, 0] - data[1,0]
     if 'baseline' in trace_data['name'].lower():
         ma = moving_average(baseline(data[:, 1:]))
