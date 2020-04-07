@@ -369,6 +369,7 @@ def learn(env,
 
             print(episode_rewards)
 
+            num_episodes = len(episode_rewards) // env.nremotes - env.nremotes
             if done and log_interval is not None and num_episodes % log_interval == 0:
 
                 mean_100ep_reward = round(np.mean(episode_rewards[-env.nremotes*log_interval-env.nremotes:-env.nremotes]), 2)
@@ -377,7 +378,6 @@ def learn(env,
                 mean_100ep_normal_flows = round(np.mean(normal_flows[-2:-1]), 2)
                 mean_100ep_attack_flows = round(np.mean(attack_flows[-2:-1]), 2)
                 mean_100ep_infected_devices = round(np.mean(infected_devices[-2:-1]), 2)
-                num_episodes = len(episode_rewards) // env.nremotes - env.nremotes
 
                 logger.record_tabular("steps", t * env.nremotes)
                 logger.record_tabular("episodes", num_episodes)
