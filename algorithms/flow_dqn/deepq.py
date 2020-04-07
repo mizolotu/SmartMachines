@@ -367,6 +367,8 @@ def learn(env,
                 # Update target network periodically.
                 update_target()
 
+            print(episode_rewards)
+
             mean_100ep_reward = round(np.mean(episode_rewards[-env.nremotes*log_interval-env.nremotes:-env.nremotes]), 2)
             min_100ep_reward = round(np.min(episode_rewards[-env.nremotes*log_interval-env.nremotes:-env.nremotes]), 2) if len(episode_rewards) > 1 else np.nan
             max_100ep_reward = round(np.max(episode_rewards[-env.nremotes*log_interval-env.nremotes:-env.nremotes]), 2) if len(episode_rewards) > 1 else np.nan
