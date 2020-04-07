@@ -1,8 +1,8 @@
 {
   "network": "mlp",
   "nsteps": 15,
-  "nupdates": 1200,
-  "exploration_fraction": 0.8,
+  "nupdates": 480,
+  "exploration_fraction": 0.5,
   "save_interval": 10,
   "load_path": "logs/dqn/mlp/checkpoints/last"
 }

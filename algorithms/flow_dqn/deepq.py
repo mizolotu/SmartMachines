@@ -102,8 +102,8 @@ def learn(env,
           exploration_fraction=0.0,
           exploration_final_eps=0.0,
           train_freq=None,
-          batch_size=512,
-          log_interval=4,
+          batch_size=1024,
+          log_interval=2,
           save_interval=10,
           log_prefix='',
           checkpoint_path=None,
@@ -366,8 +366,6 @@ def learn(env,
             if t > learning_starts * nsteps and t % target_network_update_freq == 0:
                 # Update target network periodically.
                 update_target()
-
-            print(episode_rewards)
 
             num_episodes = len(episode_rewards) // env.nremotes - env.nremotes
             if done and log_interval is not None and num_episodes % log_interval == 0:
