@@ -102,8 +102,8 @@ def learn(env,
           exploration_fraction=0.0,
           exploration_final_eps=0.0,
           train_freq=None,
-          batch_size=1024,
-          log_interval=2,
+          batch_size=2048,
+          log_interval=1,
           save_interval=10,
           log_prefix='',
           checkpoint_path=None,
@@ -233,7 +233,7 @@ def learn(env,
 
     exploration = LinearSchedule(
         schedule_timesteps=int(exploration_fraction * nupdates * nsteps // env.nremotes),
-        initial_p=0.25,
+        initial_p=1.0,
         final_p=exploration_final_eps
     )
 
@@ -273,11 +273,11 @@ def learn(env,
 
         if tf.train.latest_checkpoint(td) is not None:
             load_variables(model_file)
-            logger.log('Loaded model from {}'.format(model_file))
+            logger.log('\nLoaded model from {}\n'.format(model_file))
             model_saved = True
         elif load_path is not None and os.path.isfile(load_path):
             load_variables(load_path)
-            logger.log('Loaded model from {}'.format(load_path))
+            logger.log('\nLoaded model from {}\n'.format(load_path))
 
         for t in range(nupdates * nsteps // env.nremotes):
             if callback is not None:
@@ -286,7 +286,7 @@ def learn(env,
             # Take action and update exploration to the newest value
             kwargs = {}
             if not param_noise:
-                update_eps = exploration.value(t)
+                update_eps = exploration.value(t * env.nremotes)
                 update_param_noise_threshold = 0.
             else:
                 update_eps = 0.
