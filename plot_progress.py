@@ -22,7 +22,7 @@ def moving_average(x, step=1, window=10):
         seq.append(np.mean(x[idx, :], axis=0))
     return np.vstack(seq)
 
-def prepare_traces(data, trace_data, n=712//4):
+def prepare_traces(data, trace_data, n=240):
     dx = data[2, 0] - data[1,0]
     if 'baseline' in trace_data['name'].lower():
         ma = moving_average(baseline(data[:, 1:]))
@@ -51,6 +51,7 @@ def prepare_traces(data, trace_data, n=712//4):
         y=y_avg,
         line=dict(color=trace_data['color']),
         mode='lines',
+        showlegend=False,
         name=trace_data['name'],
     )
     return main_trace, lu_trace
@@ -84,6 +85,7 @@ if __name__ == '__main__':
 
     layout = go.Layout(
         template='plotly_white',
+        margin={'t': 0, 'l': 0, 'b': 0, 'r': 10},
         xaxis=dict(
             title='Steps',
             showgrid=True,
